@@ -1,4 +1,5 @@
 import gymnasium as gym
+import matplotlib.pyplot as plt
 from world import GridEnv  # Imports your custom class
 
 # 1. Initialize the environment
@@ -11,7 +12,10 @@ print(f"Initial Agent Position: {observation['agent']}")
 print(f"Target Position: {observation['target']}")
 print(f"Manhattan Distance: {info['distance']}\n")
 
-# 3. Take 5 random steps in the world
+# Render initial state
+env.render()
+
+# 3. Take random steps in the world
 for step_num in range(1, 60):
     # Sample a random action (0, 1, 2, or 3)
     action = env.action_space.sample()
@@ -22,9 +26,15 @@ for step_num in range(1, 60):
     print(f"Step {step_num} | Action taken: {action}")
     print(f"New Agent Position: {observation['agent']}")
     print(f"Distance to Target: {info['distance']}")
-    print(f"Episode Terminated: {terminated} | Reward: {reward}")
     print("-" * 30)
+
+    # Update the plot and pause briefly to animate it
+    env.render()
+    plt.pause(0.1)  # Adjust speed of the animation here (in seconds)
 
     if terminated:
         print("Target reached!")
+        plt.pause(1.5)
         break
+
+env.close()

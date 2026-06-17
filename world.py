@@ -89,13 +89,51 @@ class GridEnv(gym.Env):
         self.ax.plot(self._agent_location[1], self._agent_location[0],
                      marker='s', color='dodgerblue', markersize=12, label='Agent')
 
-        self.ax.set_title("GridWorld 20x20")
+        self.ax.set_title("GridWorld 10x10")
         self.ax.legend(loc='upper right')
 
-        # Pause briefly so the window has time to draw/refresh
-        plt.draw()
-        plt.pause(0.1)
+        # Repaint without blocking the GUI thread
+        self.fig.canvas.draw_idle()
+        self.fig.canvas.flush_events()
 
     def close(self):
-        if hasattr(self, 'fig') and self.fig is None:
+        if hasattr(self, 'fig') and self.fig is not None:
             plt.close(self.fig)
+
+
+if __name__ == "__main__":
+    pass
+    # env = GridEnv()
+    # obs, info = env.reset()
+
+    # print("Click the plot window, then press an arrow key (or 0=Right, 1=Up, "
+    #       "2=Left, 3=Down). Press 'q' to quit.")
+    # env.render()
+
+    # key_to_action = {
+    #     "right": 0, "up": 1, "left": 2, "down": 3,
+    #     "0": 0, "1": 1, "2": 2, "3": 3,
+    # }
+
+    # def on_key(event):
+    #     if event.key == "q":
+    #         plt.close(env.fig)
+    #         return
+
+    #     if event.key not in key_to_action:
+    #         return
+
+    #     obs, reward, terminated, truncated, info = env.step(key_to_action[event.key])
+    #     env.render()
+    #     print(f"Agent Pos: {obs['agent']} | Distance to Target: {info['distance']}")
+
+    #     if terminated:
+    #         print("Success! Your pal reached the target!")
+    #         env.ax.set_title("Success! Reached the target.")
+    #         env.fig.canvas.draw_idle()
+
+    # env.fig.canvas.mpl_connect("key_press_event", on_key)
+
+    # # Hand control to the GUI event loop so the window stays responsive.
+    # plt.ioff()
+    # plt.show()
