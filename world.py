@@ -1,8 +1,16 @@
+# pyrefly: ignore [missing-import]
 import gymnasium as gym
+# pyrefly: ignore [missing-import]
 from gymnasium import spaces
+# pyrefly: ignore [missing-import]
 import numpy as np
 from typing import Optional
+# pyrefly: ignore [missing-import]
 import matplotlib.pyplot as plt
+# pyrefly: ignore [missing-import]
+from matplotlib.patches import Patch
+# pyrefly: ignore [missing-import]
+from matplotlib.lines import Line2D
 from sensors import LineSensor, ConeSensor
 
 class GridEnv(gym.Env):
@@ -65,6 +73,8 @@ class GridEnv(gym.Env):
         # Reset heading (defaults to UP)
         self._agent_heading = np.array([-1, 0])
 
+        self._update_visited_with_sensors()
+
         observation = self._get_obs()
         info = self._get_info()
 
@@ -87,6 +97,14 @@ class GridEnv(gym.Env):
             obs[sensor.name] = sensor.get_observation(self)
         return obs
 
+    def _update_visited_with_sensors(self):
+        for sensor in self.sensors:
+            covered_cells = sensor.get_covered_cells(self)
+            for cell in covered_cells:
+                r, c = cell
+                if 0 <= r < self.size and 0 <= c < self.size:
+                    self._visited_grid[r, c] = 1.0
+
     def step(self, action):
         # Update heading to the direction of action
         direction = self._action_to_direction[action]
@@ -98,6 +116,8 @@ class GridEnv(gym.Env):
         
         # Mark the new position as visited
         self._visited_grid[self._agent_location[0], self._agent_location[1]] = 1.0
+
+        self._update_visited_with_sensors()
 
         terminated = np.array_equal(self._agent_location, self._target_location)
         truncated = False
@@ -164,8 +184,7 @@ class GridEnv(gym.Env):
         self.ax.set_title("GridWorld 10x10 with Visited Memory & Sensors")
         
         # Build legend to show Visited and Sensor Ranges
-        from matplotlib.patches import Patch
-        from matplotlib.lines import Line2D
+        
         legend_elements = [
             Line2D([0], [0], marker='s', color='w', label='Agent', markerfacecolor='dodgerblue', markersize=10),
             Line2D([0], [0], marker='*', color='w', label='Target', markerfacecolor='red', markersize=12),
