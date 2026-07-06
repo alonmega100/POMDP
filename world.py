@@ -14,7 +14,7 @@ from matplotlib.lines import Line2D
 from sensors import LineSensor, ConeSensor
 
 class GridEnv(gym.Env):
-    def __init__(self, sensors=None):
+    def __init__(self, sensors=None, active_sensors=None):
         super().__init__()
         self.size = 10
 
@@ -30,12 +30,21 @@ class GridEnv(gym.Env):
 
         # Configure sensors
         if sensors is None:
-            self.sensors = [
+            all_sensors = [
                 LineSensor(name="sensor_line", num_blocks=4),
                 ConeSensor(name="sensor_cone", depth=3)
             ]
         else:
-            self.sensors = sensors
+            all_sensors = sensors
+
+        if active_sensors is not None:
+            if isinstance(active_sensors, int):
+                active_sensors = [active_sensors]
+            self.sensors = [all_sensors[i] for i in active_sensors]
+            self.active_sensors = list(active_sensors)
+        else:
+            self.sensors = all_sensors
+            self.active_sensors = list(range(len(all_sensors)))
 
         # Visited state representation (10x10 grid)
         self._visited_grid = np.zeros((self.size, self.size), dtype=np.float32)
@@ -184,14 +193,23 @@ class GridEnv(gym.Env):
         self.ax.set_title("GridWorld 10x10 with Visited Memory & Sensors")
         
         # Build legend to show Visited and Sensor Ranges
-        
         legend_elements = [
             Line2D([0], [0], marker='s', color='w', label='Agent', markerfacecolor='dodgerblue', markersize=10),
             Line2D([0], [0], marker='*', color='w', label='Target', markerfacecolor='red', markersize=12),
             Patch(facecolor='palegreen', edgecolor='none', alpha=0.35, label='Visited Memory'),
-            Line2D([0], [0], color='gold', linestyle='--', linewidth=2, label='Line Sensor Fov'),
-            Line2D([0], [0], color='darkorange', linestyle='--', linewidth=2, label='Cone Sensor Fov')
         ]
+        
+        # Dynamically add active sensors to the legend
+        for sensor in self.sensors:
+            if sensor.name == "sensor_line":
+                legend_elements.append(
+                    Line2D([0], [0], color='gold', linestyle='--', linewidth=2, label='Line Sensor Fov')
+                )
+            elif sensor.name == "sensor_cone":
+                legend_elements.append(
+                    Line2D([0], [0], color='darkorange', linestyle='--', linewidth=2, label='Cone Sensor Fov')
+                )
+                
         self.ax.legend(handles=legend_elements, loc='upper right')
 
         # Repaint without blocking the GUI thread

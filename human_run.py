@@ -1,8 +1,10 @@
+# pyrefly: ignore [missing-import]
 import gymnasium as gym
 from world import GridEnv  # Imports your custom class
+# pyrefly: ignore [missing-import]
 import matplotlib.pyplot as plt
 # 1. Initialize the environment
-env = GridEnv()
+env = GridEnv(active_sensors=1)
 
 # 2. Reset the environment to start
 observation, info = env.reset()
@@ -15,14 +17,15 @@ print(f"Manhattan Distance: {info['distance']}\n")
 env.render()
 
 # 3. Play the game
-print("Use numbers to move: 0=Right, 1=Up, 2=Left, 3=Down. Type 'q' to quit.")
+print("Use keys to move: d=Right, w=Up, a=Left, s=Down. Type 'q' to quit.")
 while True:
-    user_input = input("Enter action (0-3): ")
+    user_input = input("Enter action (d,w,a,s): ")
     if user_input.lower() == 'q':
         break
 
-    if user_input in ['0', '1', '2', '3']:
-        obs, reward, terminated, truncated, info = env.step(int(user_input))
+    if user_input in ['d', 'w', 'a', 's']:
+        action_map = {'d': 0, 'w': 1, 'a': 2, 's': 3}
+        obs, reward, terminated, truncated, info = env.step(action_map[user_input])
         print(f"Agent: {obs['agent']} | Target: {obs['target']} | Dist: {info['distance']}")
 
         # Update the live plot
@@ -36,6 +39,6 @@ while True:
             plt.pause(2)
             break
     else:
-        print("Invalid input. Use 0, 1, 2, or 3.")
+        print("Invalid input. Use d,w,a,s.")
 
 env.close()

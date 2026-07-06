@@ -1,4 +1,6 @@
+# pyrefly: ignore [missing-import]
 import gymnasium as gym
+# pyrefly: ignore [missing-import]
 import matplotlib.pyplot as plt
 import numpy as np
 from world import GridEnv
@@ -15,20 +17,23 @@ def print_sensor_obs(obs):
     
     # Line Sensor (4 blocks in front)
     # Each row is: [is_visited, is_boundary, is_target]
-    print("\nLine Sensor Output (4 blocks in front):")
-    print("Format: [visited, boundary, target]")
-    for i, val in enumerate(obs['sensor_line']):
-        print(f"  Block {i+1}: {val.tolist()}")
+    if 'sensor_line' in obs:
+        print("\nLine Sensor Output (4 blocks in front):")
+        print("Format: [visited, boundary, target]")
+        for i, val in enumerate(obs['sensor_line']):
+            print(f"  Block {i+1}: {val.tolist()}")
         
     # Cone Sensor (depth 3, 9 cells)
-    print("\nCone Sensor Output (9 blocks in front cone):")
-    print("Format: [visited, boundary, target]")
-    for i, val in enumerate(obs['sensor_cone']):
-        print(f"  Cell {i+1}: {val.tolist()}")
+    if 'sensor_cone' in obs:
+        print("\nCone Sensor Output (9 blocks in front cone):")
+        print("Format: [visited, boundary, target]")
+        for i, val in enumerate(obs['sensor_cone']):
+            print(f"  Cell {i+1}: {val.tolist()}")
     print("----------------------------\n")
 
-# 1. Initialize the environment
-env = GridEnv()
+# 1. Initialize the environment. You can specify a single sensor index (e.g., active_sensors=0 for LineSensor,
+# active_sensors=1 for ConeSensor) or list them (e.g., active_sensors=[0, 1] or None for all sensors).
+env = GridEnv(active_sensors=1)
 
 # 2. Reset the environment
 observation, info = env.reset()
