@@ -53,8 +53,9 @@ class GridEnv(gym.Env):
 
         # Define Gym Dict observation space
         obs_dict = {
-            "agent": spaces.Box(low=0, high=self.size - 1, shape=(2,), dtype=np.int32),
-            "target": spaces.Box(low=0, high=self.size - 1, shape=(2,), dtype=np.int32),
+            "agent": spaces.Box(low=0.0, high=1.0, shape=(2,), dtype=np.float32),
+            "target": spaces.Box(low=0.0, high=1.0, shape=(2,), dtype=np.float32),
+            "heading": spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32),
             "visited_memory": spaces.Box(low=0.0, high=1.0, shape=(self.size, self.size), dtype=np.float32)
         }
         for sensor in self.sensors:
@@ -64,6 +65,7 @@ class GridEnv(gym.Env):
 
     def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
         super().reset(seed=seed)
+        self._elapsed_steps = 0
 
         # Randomly place the agent
         self._agent_location = self.np_random.integers(0, self.size, size=2, dtype=int)
@@ -82,8 +84,6 @@ class GridEnv(gym.Env):
         # Reset heading (defaults to UP)
         self._agent_heading = np.array([-1, 0])
 
-        self._update_visited_with_sensors()
-
         observation = self._get_obs()
         info = self._get_info()
 
@@ -98,8 +98,9 @@ class GridEnv(gym.Env):
 
     def _get_obs(self):
         obs = {
-            "agent": self._agent_location.astype(np.int32),
-            "target": self._target_location.astype(np.int32),
+            "agent": self._agent_location.astype(np.float32) / (self.size - 1),
+            "target": self._target_location.astype(np.float32) / (self.size - 1),
+            "heading": self._agent_heading.astype(np.float32),
             "visited_memory": self._visited_grid.copy()
         }
         for sensor in self.sensors:
@@ -115,23 +116,33 @@ class GridEnv(gym.Env):
                     self._visited_grid[r, c] = 1.0
 
     def step(self, action):
+        self._elapsed_steps += 1
         # Update heading to the direction of action
         direction = self._action_to_direction[action]
         self._agent_heading = direction
 
-        self._agent_location = np.clip(
-            self._agent_location + direction, 0, self.size - 1
+        # Check if the action would move the agent out of bounds (hitting a wall)
+        next_location = self._agent_location + direction
+        hit_wall = (
+            next_location[0] < 0 or next_location[0] >= self.size or
+            next_location[1] < 0 or next_location[1] >= self.size
         )
+
+        self._agent_location = np.clip(next_location, 0, self.size - 1)
         
         # Mark the new position as visited
         self._visited_grid[self._agent_location[0], self._agent_location[1]] = 1.0
 
-        self._update_visited_with_sensors()
-
         terminated = np.array_equal(self._agent_location, self._target_location)
-        truncated = False
+        truncated = self._elapsed_steps >= 60
 
-        reward = 1 if terminated else 0
+        if terminated:
+            reward = 10.0
+        elif hit_wall:
+            reward = -1.0
+        else:
+            reward = -0.1
+
         observation = self._get_obs()
         info = self._get_info()
 

@@ -32,7 +32,7 @@ for step_num in range(1, 60):
 
     # Update the plot and pause briefly to animate it
     env.render()
-    plt.pause(0.1)  # Adjust speed of the animation here (in seconds)
+    #plt.pause(0.1)  # Adjust speed of the animation here (in seconds)
 
     if terminated:
         print("Target reached!")

@@ -2,13 +2,19 @@
 import gymnasium as gym
 # pyrefly: ignore [missing-import]
 import matplotlib.pyplot as plt
-import numpy as np
+# pyrefly: ignore [missing-import]
+import numpy as np  
 from world import GridEnv
 
 def print_sensor_obs(obs):
     print("\n--- Current Observations ---")
-    print(f"Agent Location: {obs['agent']}")
-    print(f"Target Location: {obs['target']}")
+    # Denormalize coordinates back to 0-9 scale for readable display
+    agent_loc = np.round(obs['agent'] * 9).astype(int)
+    target_loc = np.round(obs['target'] * 9).astype(int)
+    print(f"Agent Location: {agent_loc}")
+    print(f"Target Location: {target_loc}")
+    if 'heading' in obs:
+        print(f"Agent Heading: {obs['heading'].tolist()}")
     
     # Visited memory summary
     visited_coords = np.argwhere(obs['visited_memory'] == 1.0)
@@ -35,33 +41,76 @@ def print_sensor_obs(obs):
 # active_sensors=1 for ConeSensor) or list them (e.g., active_sensors=[0, 1] or None for all sensors).
 env = GridEnv(active_sensors=1)
 
-# 2. Reset the environment
-observation, info = env.reset()
-print("--- Environment Initialized with Dict Observation Space ---")
-print_sensor_obs(observation)
+# Load trained PPO LSTM model if available
+import os
+# pyrefly: ignore [missing-import]
+from sb3_contrib import RecurrentPPO
 
-# Render initial state
-env.render()
-plt.pause(0.5)
+def main():
+    model_path = "ppo_lstm_model.zip"
+    if os.path.exists(model_path):
+        print(f"Loading trained model from {model_path}...")
+        model = RecurrentPPO.load("ppo_lstm_model")
+    else:
+        print("No trained model found. Falling back to random walk baseline.")
+        model = None
 
-# 3. Take random steps
-for step_num in range(1, 20):
-    # Sample a random action (0=Right, 1=Up, 2=Left, 3=Down)
-    action = env.action_space.sample()
+    # Run 5 episodes sequentially without reloading the model
+    num_episodes = 5
+    for ep in range(1, num_episodes + 1):
+        print(f"\n==========================================")
+        print(f"Starting Episode {ep} / {num_episodes}")
+        print(f"==========================================\n")
+        
+        lstm_states = None
+        episode_starts = np.ones((1,), dtype=bool)
 
-    # Step the environment forward
-    observation, reward, terminated, truncated, info = env.step(action)
+        # 2. Reset the environment
+        observation, info = env.reset()
+        print("--- Environment Initialized ---")
+        print_sensor_obs(observation)
 
-    print(f"Step {step_num} | Action taken: {action} (0=Right, 1=Up, 2=Left, 3=Down)")
-    print_sensor_obs(observation)
+        # Render initial state
+        env.render()
+        plt.pause(0.5)
 
-    # Update the plot and pause briefly to animate it
-    env.render()
-    plt.pause(0.8)  # Pause to make visualization visible
+        # 3. Take steps
+        for step_num in range(1, 61):
+            if model is not None:
+                # Predict action using the trained LSTM policy
+                action, lstm_states = model.predict(
+                    observation,
+                    state=lstm_states,
+                    episode_start=episode_starts,
+                    deterministic=True
+                )
+                action = int(action)
+            else:
+                # Sample a random action (0=Right, 1=Up, 2=Left, 3=Down)
+                action = env.action_space.sample()
 
-    if terminated:
-        print("Success! Target reached!")
-        plt.pause(2.0)
-        break
+            # Step the environment forward
+            observation, reward, terminated, truncated, info = env.step(action)
 
-env.close()
+            print(f"Step {step_num} | Action taken: {action} (0=Right, 1=Up, 2=Left, 3=Down) | Reward: {reward:.2f}")
+            print_sensor_obs(observation)
+
+            if model is not None:
+                episode_starts = np.array([terminated or truncated])
+
+            # Update the plot and pause briefly to animate it
+            env.render()
+            plt.pause(0.001)  # Pause to make visualization visible
+
+            if terminated:
+                print("Success! Target reached!")
+                plt.pause(1.5)
+                break
+            if truncated:
+                print("Failed! Step limit reached (60 steps).")
+                plt.pause(1.5)
+                break
+
+    env.close()
+if __name__ == "__main__":
+    main()
