@@ -34,7 +34,7 @@ class LineSensor(BaseSensor):
 
     def get_covered_cells(self, env) -> list:
         cells = []
-        heading = env._agent_heading
+        heading = env._sensor_heading
         for k in range(1, self.num_blocks + 1):
             cell = env._agent_location + k * heading
             cells.append(cell)
@@ -77,7 +77,7 @@ class ConeSensor(BaseSensor):
 
     def get_covered_cells(self, env) -> list:
         cells = []
-        heading = env._agent_heading
+        heading = env._sensor_heading
         dr, dc = heading
         # Orthogonal left vector
         left_dir = np.array([-dc, dr])

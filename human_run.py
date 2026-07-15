@@ -12,6 +12,7 @@ print("--- Environment Initialized ---")
 print(f"Initial Agent Position: {observation['agent']}")
 print(f"Target Position: {observation['target']}")
 print(f"Manhattan Distance: {info['distance']}\n")
+env.print_grid()
 
 # Render the initial state
 env.render()
@@ -32,6 +33,7 @@ while True:
         }
         obs, reward, terminated, truncated, info = env.step(action_map[user_input])
         print(f"Agent: {obs['agent']} | Target: {obs['target']} | Dist: {info['distance']}")
+        env.print_grid()
 
         # Update the live plot
         env.render()

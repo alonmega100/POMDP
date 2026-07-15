@@ -28,7 +28,7 @@ class GridEnv(gym.Env):
             3: np.array([1, 0]),   # Move down (row + 1)
         }
 
-        self._action_to_heading = {
+        self._action_to_sensor_heading = {
             4: np.array([0, 1]),   # Point sensor right
             5: np.array([-1, 0]),  # Point sensor up
             6: np.array([0, -1]),  # Point sensor left
@@ -55,14 +55,14 @@ class GridEnv(gym.Env):
 
         # Visited state representation (10x10 grid)
         self._visited_grid = np.zeros((self.size, self.size), dtype=np.float32)
-        # Agent heading vector
-        self._agent_heading = np.array([-1, 0])  # Defaults to Up
+        # Sensor heading vector (direction the sensor is pointed)
+        self._sensor_heading = np.array([-1, 0])  # Defaults to Up
 
         # Define Gym Dict observation space
         obs_dict = {
             "agent": spaces.Box(low=0.0, high=1.0, shape=(2,), dtype=np.float32),
             "target": spaces.Box(low=0.0, high=1.0, shape=(2,), dtype=np.float32),
-            "heading": spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32),
+            "sensor_heading": spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32),
             "visited_memory": spaces.Box(low=0.0, high=1.0, shape=(self.size, self.size), dtype=np.float32)
         }
         for sensor in self.sensors:
@@ -88,8 +88,8 @@ class GridEnv(gym.Env):
         self._visited_grid = np.zeros((self.size, self.size), dtype=np.float32)
         self._visited_grid[self._agent_location[0], self._agent_location[1]] = 1.0
 
-        # Reset heading (defaults to UP)
-        self._agent_heading = np.array([-1, 0])
+        # Reset sensor heading (defaults to UP)
+        self._sensor_heading = np.array([-1, 0])
 
         # Scan the initial area
         self._update_visited_with_sensors()
@@ -128,12 +128,24 @@ class GridEnv(gym.Env):
         obs = {
             "agent": self._agent_location.astype(np.float32) / (self.size - 1),
             "target": self._target_location.astype(np.float32) / (self.size - 1),
-            "heading": self._agent_heading.astype(np.float32),
+            "sensor_heading": self._sensor_heading.astype(np.float32),
             "visited_memory": grid
         }
         for sensor in self.sensors:
             obs[sensor.name] = sensor.get_observation(self)
         return obs
+
+    def print_grid(self):
+        obs = self._get_obs()
+        grid = obs["visited_memory"]
+        print("\n=== 10x10 Grid World Status ===")
+        for r in range(self.size):
+            row_vals = []
+            for c in range(self.size):
+                val = grid[r, c]
+                row_vals.append(f"{val:.2f}")
+            print("  ".join(row_vals))
+        print("===============================\n")
 
     def _update_visited_with_sensors(self):
         for sensor in self.sensors:
@@ -157,8 +169,8 @@ class GridEnv(gym.Env):
             )
             self._agent_location = np.clip(next_location, 0, self.size - 1)
         # If action is point sensor (4, 5, 6, 7)
-        elif action in self._action_to_heading:
-            self._agent_heading = self._action_to_heading[action]
+        elif action in self._action_to_sensor_heading:
+            self._sensor_heading = self._action_to_sensor_heading[action]
 
         # Mark current agent position as visited and update seen cells with active sensors
         self._visited_grid[self._agent_location[0], self._agent_location[1]] = 1.0
@@ -227,8 +239,8 @@ class GridEnv(gym.Env):
         self.ax.plot(self._agent_location[1], self._agent_location[0],
                      marker='s', color='dodgerblue', markersize=12, label='Agent')
 
-        # 5. Draw agent heading direction (Blue Arrow)
-        dy, dx = self._agent_heading
+        # 5. Draw sensor heading direction (Blue Arrow)
+        dy, dx = self._sensor_heading
         self.ax.arrow(self._agent_location[1], self._agent_location[0], dx * 0.3, dy * 0.3,
                       head_width=0.25, head_length=0.25, fc='dodgerblue', ec='dodgerblue', zorder=5)
 

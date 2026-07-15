@@ -13,8 +13,8 @@ def print_sensor_obs(obs):
     target_loc = np.round(obs['target'] * 9).astype(int)
     print(f"Agent Location: {agent_loc}")
     print(f"Target Location: {target_loc}")
-    if 'heading' in obs:
-        print(f"Agent Heading: {obs['heading'].tolist()}")
+    if 'sensor_heading' in obs:
+        print(f"Sensor Heading: {obs['sensor_heading'].tolist()}")
     
     # Visited memory summary
     visited_coords = np.argwhere(obs['visited_memory'] == 1.0)
@@ -47,10 +47,15 @@ import os
 from sb3_contrib import RecurrentPPO
 
 def main():
-    model_path = "ppo_lstm_model.zip"
+    model_path = "ppo_cnn_model.zip"
     if os.path.exists(model_path):
         print(f"Loading trained model from {model_path}...")
-        model = RecurrentPPO.load("ppo_lstm_model")
+        try:
+            from ppo_train import D4_EquivariantPolicy
+            model = RecurrentPPO.load("ppo_cnn_model", custom_objects={"policy_class": D4_EquivariantPolicy})
+        except Exception as e:
+            print(f"Could not load model: {e}. Falling back to random walk baseline.")
+            model = None
     else:
         print("No trained model found. Falling back to random walk baseline.")
         model = None
@@ -69,6 +74,7 @@ def main():
         observation, info = env.reset()
         print("--- Environment Initialized ---")
         print_sensor_obs(observation)
+        env.print_grid()
 
         # Render initial state
         env.render()
@@ -86,14 +92,20 @@ def main():
                 )
                 action = int(action)
             else:
-                # Sample a random action (0=Right, 1=Up, 2=Left, 3=Down)
+                # Sample a random action (0-3=Move, 4-7=Point Sensor)
                 action = env.action_space.sample()
 
             # Step the environment forward
             observation, reward, terminated, truncated, info = env.step(action)
 
-            print(f"Step {step_num} | Action taken: {action} (0=Right, 1=Up, 2=Left, 3=Down) | Reward: {reward:.2f}")
+            action_names = {
+                0: "Move Right", 1: "Move Up", 2: "Move Left", 3: "Move Down",
+                4: "Point Sensor Right", 5: "Point Sensor Up", 6: "Point Sensor Left", 7: "Point Sensor Down"
+            }
+            action_desc = action_names.get(action, f"Unknown({action})")
+            print(f"Step {step_num} | Action taken: {action} ({action_desc}) | Reward: {reward:.2f}")
             print_sensor_obs(observation)
+            env.print_grid()
 
             if model is not None:
                 episode_starts = np.array([terminated or truncated])
