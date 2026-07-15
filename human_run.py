@@ -17,14 +17,19 @@ print(f"Manhattan Distance: {info['distance']}\n")
 env.render()
 
 # 3. Play the game
-print("Use keys to move: d=Right, w=Up, a=Left, s=Down. Type 'q' to quit.")
+print("Use keys to move: w=Up, a=Left, s=Down, d=Right.")
+print("Use keys to point sensor: i=Up, j=Left, k=Down, l=Right.")
+print("Type 'q' to quit.")
 while True:
-    user_input = input("Enter action (d,w,a,s): ")
-    if user_input.lower() == 'q':
+    user_input = input("Enter action (w,a,s,d or i,j,k,l): ").lower()
+    if user_input == 'q':
         break
 
-    if user_input in ['d', 'w', 'a', 's']:
-        action_map = {'d': 0, 'w': 1, 'a': 2, 's': 3}
+    if user_input in ['d', 'w', 'a', 's', 'l', 'i', 'j', 'k']:
+        action_map = {
+            'd': 0, 'w': 1, 'a': 2, 's': 3,  # Move
+            'l': 4, 'i': 5, 'j': 6, 'k': 7   # Point sensor
+        }
         obs, reward, terminated, truncated, info = env.step(action_map[user_input])
         print(f"Agent: {obs['agent']} | Target: {obs['target']} | Dist: {info['distance']}")
 
@@ -39,6 +44,6 @@ while True:
             plt.pause(2)
             break
     else:
-        print("Invalid input. Use d,w,a,s.")
+        print("Invalid input. Use w,a,s,d for movement or i,j,k,l for pointing.")
 
 env.close()

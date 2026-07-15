@@ -18,14 +18,21 @@ class GridEnv(gym.Env):
         super().__init__()
         self.size = 10
 
-        # Define 4 discrete actions
-        self.action_space = spaces.Discrete(4)
+        # Define 8 discrete actions
+        self.action_space = spaces.Discrete(8)
 
         self._action_to_direction = {
-            0: np.array([0, 1]),  # Move right (column + 1)
+            0: np.array([0, 1]),   # Move right (column + 1)
             1: np.array([-1, 0]),  # Move up (row - 1)
             2: np.array([0, -1]),  # Move left (column - 1)
-            3: np.array([1, 0]),  # Move down (row + 1)
+            3: np.array([1, 0]),   # Move down (row + 1)
+        }
+
+        self._action_to_heading = {
+            4: np.array([0, 1]),   # Point sensor right
+            5: np.array([-1, 0]),  # Point sensor up
+            6: np.array([0, -1]),  # Point sensor left
+            7: np.array([1, 0]),   # Point sensor down
         }
 
         # Configure sensors
@@ -84,6 +91,9 @@ class GridEnv(gym.Env):
         # Reset heading (defaults to UP)
         self._agent_heading = np.array([-1, 0])
 
+        # Scan the initial area
+        self._update_visited_with_sensors()
+
         observation = self._get_obs()
         info = self._get_info()
 
@@ -97,11 +107,29 @@ class GridEnv(gym.Env):
         }
 
     def _get_obs(self):
+        # Every spot in the map will be:
+        # 0 if the robot nor the sensor saw it.
+        # 0.25 if the robot/the sensor saw it.
+        # 0.5 for the robot's location.
+        # 1 if the sensor SAW the reward.
+        
+        # Start with 0.25 for all seen cells, 0 otherwise
+        grid = self._visited_grid.copy() * 0.25
+        
+        # 1 if the sensor SAW the reward (target is in visited/seen grid)
+        tr, tc = self._target_location
+        if self._visited_grid[tr, tc] == 1.0:
+            grid[tr, tc] = 1.0
+            
+        # 0.5 for the robot's location
+        ar, ac = self._agent_location
+        grid[ar, ac] = 0.5
+        
         obs = {
             "agent": self._agent_location.astype(np.float32) / (self.size - 1),
             "target": self._target_location.astype(np.float32) / (self.size - 1),
             "heading": self._agent_heading.astype(np.float32),
-            "visited_memory": self._visited_grid.copy()
+            "visited_memory": grid
         }
         for sensor in self.sensors:
             obs[sensor.name] = sensor.get_observation(self)
@@ -117,21 +145,24 @@ class GridEnv(gym.Env):
 
     def step(self, action):
         self._elapsed_steps += 1
-        # Update heading to the direction of action
-        direction = self._action_to_direction[action]
-        self._agent_heading = direction
-
-        # Check if the action would move the agent out of bounds (hitting a wall)
-        next_location = self._agent_location + direction
-        hit_wall = (
-            next_location[0] < 0 or next_location[0] >= self.size or
-            next_location[1] < 0 or next_location[1] >= self.size
-        )
-
-        self._agent_location = np.clip(next_location, 0, self.size - 1)
         
-        # Mark the new position as visited
+        hit_wall = False
+        # If action is movement (0, 1, 2, 3)
+        if action in self._action_to_direction:
+            direction = self._action_to_direction[action]
+            next_location = self._agent_location + direction
+            hit_wall = (
+                next_location[0] < 0 or next_location[0] >= self.size or
+                next_location[1] < 0 or next_location[1] >= self.size
+            )
+            self._agent_location = np.clip(next_location, 0, self.size - 1)
+        # If action is point sensor (4, 5, 6, 7)
+        elif action in self._action_to_heading:
+            self._agent_heading = self._action_to_heading[action]
+
+        # Mark current agent position as visited and update seen cells with active sensors
         self._visited_grid[self._agent_location[0], self._agent_location[1]] = 1.0
+        self._update_visited_with_sensors()
 
         terminated = np.array_equal(self._agent_location, self._target_location)
         truncated = self._elapsed_steps >= 60
