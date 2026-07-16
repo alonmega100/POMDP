@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # pyrefly: ignore [missing-import]
 import numpy as np
 
-def plot_learning_curve(log_dir="logs", window=500):
+def plot_learning_curve(log_dir="logs", window=5000):
     monitor_file = os.path.join(log_dir, "monitor.csv")
     if not os.path.exists(monitor_file):
         print(f"No monitor log file found at {monitor_file}.")

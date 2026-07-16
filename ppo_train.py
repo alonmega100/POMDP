@@ -290,7 +290,7 @@ def train():
     save_callback = PeriodicSaveCallback(save_path="ppo_cnn_model", save_freq=2000)
     
     # Train for more steps, preserving log step count if loading model, passing callback
-    model.learn(total_timesteps=300000, reset_num_timesteps=False, callback=save_callback)
+    model.learn(total_timesteps=1000000, reset_num_timesteps=False, callback=save_callback)
     
     # Save the final trained model
     model.save("ppo_cnn_model")
