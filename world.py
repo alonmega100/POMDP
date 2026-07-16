@@ -63,7 +63,7 @@ class GridEnv(gym.Env):
             "agent": spaces.Box(low=0.0, high=1.0, shape=(2,), dtype=np.float32),
             "target": spaces.Box(low=0.0, high=1.0, shape=(2,), dtype=np.float32),
             "sensor_heading": spaces.Box(low=-1.0, high=1.0, shape=(2,), dtype=np.float32),
-            "visited_memory": spaces.Box(low=0.0, high=1.0, shape=(self.size, self.size), dtype=np.float32)
+            "visited_memory": spaces.Box(low=0.0, high=1.0, shape=(3, self.size, self.size), dtype=np.float32)
         }
         for sensor in self.sensors:
             obs_dict[sensor.name] = sensor.observation_space
@@ -107,23 +107,23 @@ class GridEnv(gym.Env):
         }
 
     def _get_obs(self):
-        # Every spot in the map will be:
-        # 0 if the robot nor the sensor saw it.
-        # 0.25 if the robot/the sensor saw it.
-        # 0.5 for the robot's location.
-        # 1 if the sensor SAW the reward.
+        # 3x10x10 grid representation:
+        # Channel 0: Was this place observed (0 if not, 1 if yes)
+        # Channel 1: Is the robot here (1 at agent location, 0 otherwise)
+        # Channel 2: Is the reward here (1 at target location ONLY IF observed by sensor/agent, 0 otherwise)
+        grid = np.zeros((3, self.size, self.size), dtype=np.float32)
         
-        # Start with 0.25 for all seen cells, 0 otherwise
-        grid = self._visited_grid.copy() * 0.25
+        # Channel 0: observed places
+        grid[0] = self._visited_grid.copy()
         
-        # 1 if the sensor SAW the reward (target is in visited/seen grid)
+        # Channel 1: robot location
+        ar, ac = self._agent_location
+        grid[1, ar, ac] = 1.0
+        
+        # Channel 2: reward location (ONLY if observed)
         tr, tc = self._target_location
         if self._visited_grid[tr, tc] == 1.0:
-            grid[tr, tc] = 1.0
-            
-        # 0.5 for the robot's location
-        ar, ac = self._agent_location
-        grid[ar, ac] = 0.5
+            grid[2, tr, tc] = 1.0
         
         obs = {
             "agent": self._agent_location.astype(np.float32) / (self.size - 1),
@@ -138,14 +138,16 @@ class GridEnv(gym.Env):
     def print_grid(self):
         obs = self._get_obs()
         grid = obs["visited_memory"]
-        print("\n=== 10x10 Grid World Status ===")
+        print("\n=== 10x10 Grid World Status (Ch0:Observed, Ch1:Robot, Ch2:Reward) ===")
         for r in range(self.size):
             row_vals = []
             for c in range(self.size):
-                val = grid[r, c]
-                row_vals.append(f"{val:.2f}")
+                if grid.ndim == 3:
+                    row_vals.append(f"[{int(grid[0, r, c])},{int(grid[1, r, c])},{int(grid[2, r, c])}]")
+                else:
+                    row_vals.append(f"{grid[r, c]:.2f}")
             print("  ".join(row_vals))
-        print("===============================\n")
+        print("=======================================================================\n")
 
     def _update_visited_with_sensors(self):
         for sensor in self.sensors:

@@ -17,7 +17,8 @@ def print_sensor_obs(obs):
         print(f"Sensor Heading: {obs['sensor_heading'].tolist()}")
     
     # Visited memory summary
-    visited_coords = np.argwhere(obs['visited_memory'] == 1.0)
+    visited_grid = obs['visited_memory'][0] if obs['visited_memory'].ndim == 3 else obs['visited_memory']
+    visited_coords = np.argwhere(visited_grid == 1.0)
     print(f"Total Unique Cells Visited: {len(visited_coords)}")
     print(f"Visited Coordinates:\n{visited_coords.tolist()}")
     
@@ -41,10 +42,10 @@ def print_sensor_obs(obs):
 # active_sensors=1 for ConeSensor) or list them (e.g., active_sensors=[0, 1] or None for all sensors).
 env = GridEnv(active_sensors=1)
 
-# Load trained PPO LSTM model if available
+# Load trained PPO model if available
 import os
 # pyrefly: ignore [missing-import]
-from sb3_contrib import RecurrentPPO
+from stable_baselines3 import PPO
 
 def main():
     model_path = "ppo_cnn_model.zip"
@@ -52,7 +53,7 @@ def main():
         print(f"Loading trained model from {model_path}...")
         try:
             from ppo_train import D4_EquivariantPolicy
-            model = RecurrentPPO.load("ppo_cnn_model", custom_objects={"policy_class": D4_EquivariantPolicy})
+            model = PPO.load("ppo_cnn_model", custom_objects={"policy_class": D4_EquivariantPolicy})
         except Exception as e:
             print(f"Could not load model: {e}. Falling back to random walk baseline.")
             model = None
@@ -67,9 +68,6 @@ def main():
         print(f"Starting Episode {ep} / {num_episodes}")
         print(f"==========================================\n")
         
-        lstm_states = None
-        episode_starts = np.ones((1,), dtype=bool)
-
         # 2. Reset the environment
         observation, info = env.reset()
         print("--- Environment Initialized ---")
@@ -83,11 +81,9 @@ def main():
         # 3. Take steps
         for step_num in range(1, 61):
             if model is not None:
-                # Predict action using the trained LSTM policy
-                action, lstm_states = model.predict(
+                # Predict action using the trained PPO policy
+                action, _ = model.predict(
                     observation,
-                    state=lstm_states,
-                    episode_start=episode_starts,
                     deterministic=True
                 )
                 action = int(action)
@@ -106,9 +102,6 @@ def main():
             print(f"Step {step_num} | Action taken: {action} ({action_desc}) | Reward: {reward:.2f}")
             print_sensor_obs(observation)
             env.print_grid()
-
-            if model is not None:
-                episode_starts = np.array([terminated or truncated])
 
             # Update the plot and pause briefly to animate it
             env.render()
