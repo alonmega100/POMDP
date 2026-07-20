@@ -40,7 +40,8 @@ def print_sensor_obs(obs):
 
 # 1. Initialize the environment. You can specify a single sensor index (e.g., active_sensors=0 for LineSensor,
 # active_sensors=1 for ConeSensor) or list them (e.g., active_sensors=[0, 1] or None for all sensors).
-env = GridEnv(active_sensors=1)
+active_sensor = 0
+env = GridEnv(active_sensors=active_sensor)
 
 # Load trained PPO model if available
 import os
@@ -48,12 +49,12 @@ import os
 from stable_baselines3 import PPO
 
 def main():
-    model_path = "ppo_cnn_model.zip"
+    model_path = f"ppo_cnn_model_sensor_{active_sensor}.zip"
     if os.path.exists(model_path):
         print(f"Loading trained model from {model_path}...")
         try:
             from ppo_train import D4_EquivariantPolicy
-            model = PPO.load("ppo_cnn_model", custom_objects={"policy_class": D4_EquivariantPolicy})
+            model = PPO.load(f"ppo_cnn_model_sensor_{active_sensor}.zip", custom_objects={"policy_class": D4_EquivariantPolicy})
         except Exception as e:
             print(f"Could not load model: {e}. Falling back to random walk baseline.")
             model = None
@@ -62,7 +63,7 @@ def main():
         model = None
 
     # Run 5 episodes sequentially without reloading the model
-    num_episodes = 5
+    num_episodes = 10
     for ep in range(1, num_episodes + 1):
         print(f"\n==========================================")
         print(f"Starting Episode {ep} / {num_episodes}")

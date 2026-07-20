@@ -200,11 +200,11 @@ def train():
     # We initialize the environment with active_sensors=1 (ConeSensor) as active.
     # If we want to support both or any sensor configured in the env, we can.
     # Let's match the active sensor index in agent_run.py (currently set to 1 by the user)
-    active_sensor_idx = 1
+    active_sensor_idx = 0
     print(f"Initializing GridEnv with active_sensors={active_sensor_idx} for training...")
     env = GridEnv(active_sensors=active_sensor_idx)
-    
-    model_path = "ppo_cnn_model.zip"
+    model_base_name = f"ppo_cnn_model_sensor_{active_sensor_idx}"
+    model_path = f"{model_base_name}.zip"
     log_dir = "logs"
     os.makedirs(log_dir, exist_ok=True)
     monitor_file_path = os.path.join(log_dir, "monitor.csv")
@@ -256,7 +256,6 @@ def train():
     print(f"Using device: {device}")
     assert device=="cuda", "Device aint cuda u biatch"
 
-    model_path = "ppo_cnn_model.zip"
     model = None
     if os.path.exists(model_path):
         print(f"Loading existing model from {model_path} to continue training...")
@@ -287,14 +286,14 @@ def train():
 
     print("Starting training of PPO agent...")
     # Instantiate the periodic save callback
-    save_callback = PeriodicSaveCallback(save_path="ppo_cnn_model", save_freq=2000)
+    save_callback = PeriodicSaveCallback(save_path=model_base_name, save_freq=2000)
     
     # Train for more steps, preserving log step count if loading model, passing callback
     model.learn(total_timesteps=1000000, reset_num_timesteps=False, callback=save_callback)
     
     # Save the final trained model
-    model.save("ppo_cnn_model")
-    print("Training finished! Model saved to ppo_cnn_model.zip")
+    model.save(model_base_name)
+    print(f"Training finished! Model saved to {model_path}")
 
 if __name__ == "__main__":
     train()
