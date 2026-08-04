@@ -3,7 +3,7 @@ import numpy as np
 import os
 import csv
 
-from config import SENSORS_TO_COMPARE, NUMBER_OF_ENVIRONMENTS
+from config import SENSORS_TO_COMPARE, NUMBER_OF_ENVIRONMENTS, SAVED_MODELS_DIR
 from world import GridEnv
 
 
@@ -27,9 +27,13 @@ def evaluate_sensors(num_environments, sensors, device="cpu"):
     loaded_models = {}
     if has_sb3:
         for sensor in sensors:
-            model_path = f"ppo_cnn_model_sensor_{sensor}.zip"
+            filename = f"ppo_cnn_model_sensor_{sensor}.zip"
+            model_path = os.path.join(SAVED_MODELS_DIR, filename)
+            if not os.path.exists(model_path) and os.path.exists(filename):
+                model_path = filename
+                
             if os.path.exists(model_path):
-                print(f"Loading model for sensor {sensor} on device '{device}'...")
+                print(f"Loading model for sensor {sensor} from '{model_path}' on device '{device}'...")
                 loaded_models[sensor] = PPO.load(
                     model_path,
                     device=device,
@@ -89,8 +93,7 @@ def evaluate_sensors(num_environments, sensors, device="cpu"):
             
             # Record detailed metrics for this sensor
             env_dict[f"sensor_{sensor}_reward"] = total_reward
-            # env_dict[f"sensor_{sensor}_success"] = success
-            # env_dict[f"sensor_{sensor}_steps"] = steps
+
             
         results_data.append(env_dict)
             

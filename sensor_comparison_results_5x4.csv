@@ -1,6 +1,0 @@
-env_index,agent_start_r,agent_start_c,target_r,target_c,sensor_0_reward,sensor_0_success,sensor_0_steps,sensor_1_reward,sensor_1_success,sensor_1_steps,sensor_2_reward,sensor_2_success,sensor_2_steps,sensor_3_reward,sensor_3_success,sensor_3_steps
-0,8,6,5,2,9.0,True,11,9.0,True,11,8.1,True,20,9.3,True,8
-1,4,5,7,9,9.3,True,8,8.9,True,12,9.3,True,8,9.2,True,9
-2,8,2,1,2,8.0,True,21,7.8999999999999995,True,22,7.699999999999999,True,24,9.0,True,11
-3,8,0,1,2,8.0,True,21,7.799999999999999,True,23,7.499999999999999,True,26,8.8,True,13
-4,7,9,8,5,9.4,True,7,9.5,True,6,9.4,True,7,9.5,True,6

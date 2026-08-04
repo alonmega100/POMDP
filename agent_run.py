@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # pyrefly: ignore [missing-import]
 import numpy as np
 
-from config import ACTIVE_SENSOR, NUM_EPISODES_FOR_AGENT_RUN
+from config import ACTIVE_SENSOR, NUM_EPISODES_FOR_AGENT_RUN, SAVED_MODELS_DIR
 from world import GridEnv
 
 def print_sensor_obs(obs):
@@ -51,17 +51,21 @@ import os
 from stable_baselines3 import PPO
 
 def main():
-    model_path = f"ppo_cnn_model_sensor_{active_sensor}.zip"
+    filename = f"ppo_cnn_model_sensor_{active_sensor}.zip"
+    model_path = os.path.join(SAVED_MODELS_DIR, filename)
+    if not os.path.exists(model_path) and os.path.exists(filename):
+        model_path = filename  # Fallback to root directory
+
     if os.path.exists(model_path):
         print(f"Loading trained model from {model_path}...")
         try:
             from ppo_train import D4_EquivariantPolicy
-            model = PPO.load(f"ppo_cnn_model_sensor_{active_sensor}.zip", custom_objects={"policy_class": D4_EquivariantPolicy})
+            model = PPO.load(model_path, custom_objects={"policy_class": D4_EquivariantPolicy})
         except Exception as e:
             print(f"Could not load model: {e}. Falling back to random walk baseline.")
             model = None
     else:
-        print("No trained model found. Falling back to random walk baseline.")
+        print(f"No trained model found at {model_path}. Falling back to random walk baseline.")
         model = None
 
     # Run 5 episodes sequentially without reloading the model

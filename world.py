@@ -12,6 +12,28 @@ from matplotlib.patches import Patch
 # pyrefly: ignore [missing-import]
 from matplotlib.lines import Line2D
 from sensors import LineSensor, ConeSensor, FrontRowSensor, DiagonalSensor
+from config import AVAILABLE_SENSORS
+
+
+def create_sensor(sensor_key: str):
+    """Factory function to instantiate a BaseSensor object based on string key in AVAILABLE_SENSORS."""
+    if sensor_key not in AVAILABLE_SENSORS:
+        raise ValueError(f"Unknown sensor key: '{sensor_key}'. Available keys: {list(AVAILABLE_SENSORS.keys())}")
+    cfg = AVAILABLE_SENSORS[sensor_key]
+    cls_name = cfg["class"]
+    params = cfg["params"]
+
+    if cls_name == "LineSensor":
+        return LineSensor(name="sensor_line", **params)
+    elif cls_name == "ConeSensor":
+        return ConeSensor(name="sensor_cone", **params)
+    elif cls_name == "FrontRowSensor":
+        return FrontRowSensor(name="sensor_front_row", **params)
+    elif cls_name == "DiagonalSensor":
+        return DiagonalSensor(name="sensor_diagonal", **params)
+    else:
+        raise ValueError(f"Unknown sensor class name: {cls_name}")
+
 
 class GridEnv(gym.Env):
     def __init__(self, sensors=None, active_sensors=None):
@@ -36,32 +58,27 @@ class GridEnv(gym.Env):
         }
 
         # Configure sensors
-        if sensors is None:
-            all_sensors = [
-                LineSensor(name="sensor_line", num_blocks=3),
-                LineSensor(name="sensor_line", num_blocks=4),
-                ConeSensor(name="sensor_cone", depth=3),
-                ConeSensor(name="sensor_cone", depth=4),
-                FrontRowSensor(name="sensor_front_row", width=3, distance=1),
-                FrontRowSensor(name="sensor_front_row", width=5, distance=1),
-                FrontRowSensor(name="sensor_front_row", width=3, distance=2),
-                FrontRowSensor(name="sensor_front_row", width=5, distance=2),
-                DiagonalSensor(name="sensor_diagonal", num_blocks=3),
-                DiagonalSensor(name="sensor_diagonal", num_blocks=4)
-
-
-            ]
+        if sensors is not None:
+            self.sensors = sensors
+            self.active_sensors = [s.name for s in sensors]
         else:
-            all_sensors = sensors
+            if active_sensors is not None:
+                if isinstance(active_sensors, (str, int)):
+                    active_sensors = [active_sensors]
 
-        if active_sensors is not None:
-            if isinstance(active_sensors, int):
-                active_sensors = [active_sensors]
-            self.sensors = [all_sensors[i] for i in active_sensors]
-            self.active_sensors = list(active_sensors)
-        else:
-            self.sensors = all_sensors
-            self.active_sensors = list(range(len(all_sensors)))
+                sensor_keys = list(AVAILABLE_SENSORS.keys())
+                resolved_sensors = []
+                for s in active_sensors:
+                    if isinstance(s, int):
+                        # Convert integer index to string key for backwards compatibility
+                        s = sensor_keys[s]
+                    resolved_sensors.append(create_sensor(s))
+
+                self.sensors = resolved_sensors
+                self.active_sensors = list(active_sensors)
+            else:
+                self.sensors = [create_sensor(k) for k in AVAILABLE_SENSORS]
+                self.active_sensors = list(AVAILABLE_SENSORS.keys())
 
         # Visited state representation (10x10 grid)
         self._visited_grid = np.zeros((self.size, self.size), dtype=np.float32)

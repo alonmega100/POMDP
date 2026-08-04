@@ -7,16 +7,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 try:
-    from config import ACTIVE_SENSOR, WINDOW_SIZE
+    from config import ACTIVE_SENSOR, WINDOW_SIZE, AVAILABLE_SENSORS
 except ImportError:
-    ACTIVE_SENSOR = 0
+    ACTIVE_SENSOR = "cone_4"
+    WINDOW_SIZE = 5000
+    AVAILABLE_SENSORS = {}
 
-SENSOR_NAMES = {
-    0: "Line Sensor (3 blocks)",
-    1: "Line Sensor (4 blocks)",
-    2: "Cone Sensor (depth 3)",
-    3: "Cone Sensor (depth 4)"
-}
+SENSOR_NAMES = {k: v.get("display_name", k) for k, v in AVAILABLE_SENSORS.items()}
 
 def plot_learning_curve(sensor_id=None, window=WINDOW_SIZE):
     if sensor_id is None:
@@ -50,18 +47,17 @@ def plot_learning_curve(sensor_id=None, window=WINDOW_SIZE):
     
     sensor_name = SENSOR_NAMES.get(sensor_id, f"Sensor {sensor_id}")
     
-    # Plot raw episode rewards with lower alpha
-    plt.plot(df['timesteps'], df['r'], alpha=0.3, color='dodgerblue', label='Episode Reward')
-    
     # Plot rolling average reward to smooth out the learning curve
     smooth_window = min(window, max(1, len(df) // 5))
     if len(df) >= 2:
         df['rolling_r'] = df['r'].rolling(window=smooth_window, min_periods=1).mean()
         plt.plot(df['timesteps'], df['rolling_r'], color='blue', linewidth=2, label=f'Rolling Mean ({smooth_window} eps)')
+    else:
+        plt.plot(df['timesteps'], df['r'], color='blue', linewidth=2, label='Episode Reward')
         
     plt.title(f"PPO Agent Learning Curve - {sensor_name}")
     plt.xlabel("Total Timesteps")
-    plt.ylabel("Episode Reward")
+    plt.ylabel("Episode Reward (Moving Average)")
     plt.grid(True, linestyle="--", alpha=0.6)
     plt.legend()
     
@@ -87,7 +83,7 @@ def plot_all_sensors_comparison(window=WINDOW_SIZE):
         return
 
     plt.figure(figsize=(12, 6))
-    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2']
 
     plotted_any = False
     for idx, sdir in enumerate(sorted(sensor_dirs)):
@@ -100,25 +96,21 @@ def plot_all_sensors_comparison(window=WINDOW_SIZE):
             if len(df) == 0:
                 continue
 
-            try:
-                sensor_num = int(sdir.split("_")[1])
-                label_name = SENSOR_NAMES.get(sensor_num, f"Sensor {sensor_num}")
-            except ValueError:
-                label_name = sdir
+            sensor_key = sdir.replace("sensor_", "")
+            label_name = SENSOR_NAMES.get(sensor_key, f"Sensor {sensor_key}")
 
             df['timesteps'] = df['l'].cumsum()
             smooth_window = min(window, max(1, len(df) // 5))
             df['rolling_r'] = df['r'].rolling(window=smooth_window, min_periods=1).mean()
             
             color = colors[idx % len(colors)]
-            plt.plot(df['timesteps'], df['rolling_r'], label=f"{label_name} (Rolling Mean)", linewidth=2, color=color)
-            plt.plot(df['timesteps'], df['r'], alpha=0.15, color=color)
+            plt.plot(df['timesteps'], df['rolling_r'], label=label_name, linewidth=2, color=color)
             plotted_any = True
         except Exception as e:
             print(f"Error reading {monitor_file}: {e}")
 
     if plotted_any:
-        plt.title("Multi-Sensor PPO Learning Curve Comparison")
+        plt.title(f"Multi-Sensor PPO Learning Curve Comparison (window_size={WINDOW_SIZE})")
         plt.xlabel("Total Timesteps")
         plt.ylabel("Episode Reward")
         plt.grid(True, linestyle="--", alpha=0.6)

@@ -214,8 +214,14 @@ def train():
     active_sensor = ACTIVE_SENSOR
     print(f"Initializing GridEnv with active_sensors={active_sensor} for training...")
     env = GridEnv(active_sensors=active_sensor)
+    
+    os.makedirs(SAVED_MODELS_DIR, exist_ok=True)
     model_base_name = f"ppo_cnn_model_sensor_{active_sensor}"
-    model_path = f"{model_base_name}.zip"
+    model_path = os.path.join(SAVED_MODELS_DIR, f"{model_base_name}.zip")
+    root_model_path = f"{model_base_name}.zip"
+    if not os.path.exists(model_path) and os.path.exists(root_model_path):
+        model_path = root_model_path
+        
     log_dir = os.path.join("logs", f"sensor_{active_sensor}")
     os.makedirs(log_dir, exist_ok=True)
     monitor_file_path = os.path.join(log_dir, "monitor.csv")
@@ -302,15 +308,16 @@ def train():
         )
 
     print("Starting training of PPO agent...")
+    save_target = os.path.join(SAVED_MODELS_DIR, model_base_name)
     # Instantiate the periodic save callback
-    save_callback = PeriodicSaveCallback(save_path=model_base_name, save_freq=2000)
+    save_callback = PeriodicSaveCallback(save_path=save_target, save_freq=2000)
     
     # Train for more steps, preserving log step count if loading model, passing callback
     model.learn(total_timesteps=1250000, reset_num_timesteps=False, callback=save_callback)
     
     # Save the final trained model
-    model.save(model_base_name)
-    print(f"Training finished! Model saved to {model_path}")
+    model.save(save_target)
+    print(f"Training finished! Model saved to {save_target}.zip")
 
 if __name__ == "__main__":
     train()

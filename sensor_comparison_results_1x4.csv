@@ -1,2 +1,0 @@
-env_index,agent_start_pos,target_pos,sensor_0_reward,sensor_1_reward,sensor_2_reward,sensor_3_reward
-0,"(8, 6)","(5, 2)",9.0,9.0,8.1,9.3
