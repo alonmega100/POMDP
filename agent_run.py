@@ -3,7 +3,9 @@ import gymnasium as gym
 # pyrefly: ignore [missing-import]
 import matplotlib.pyplot as plt
 # pyrefly: ignore [missing-import]
-import numpy as np  
+import numpy as np
+
+from config import ACTIVE_SENSOR
 from world import GridEnv
 
 def print_sensor_obs(obs):
@@ -40,7 +42,7 @@ def print_sensor_obs(obs):
 
 # 1. Initialize the environment. You can specify a single sensor index (e.g., active_sensors=0 for LineSensor,
 # active_sensors=1 for ConeSensor) or list them (e.g., active_sensors=[0, 1] or None for all sensors).
-active_sensor = 0
+active_sensor = ACTIVE_SENSOR
 env = GridEnv(active_sensors=active_sensor)
 
 # Load trained PPO model if available
@@ -63,12 +65,11 @@ def main():
         model = None
 
     # Run 5 episodes sequentially without reloading the model
-    num_episodes = 10
+    num_episodes = 20
     for ep in range(1, num_episodes + 1):
         print(f"\n==========================================")
         print(f"Starting Episode {ep} / {num_episodes}")
         print(f"==========================================\n")
-        
         # 2. Reset the environment
         observation, info = env.reset()
         print("--- Environment Initialized ---")
@@ -78,6 +79,7 @@ def main():
         # Render initial state
         env.render()
         plt.pause(0.5)
+
 
         # 3. Take steps
         for step_num in range(1, 61):

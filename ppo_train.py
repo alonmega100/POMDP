@@ -1,4 +1,5 @@
 #from openpyxl.cell import rich_text
+import shutil
 from torch.nn.modules import padding
 import os
 # pyrefly: ignore [missing-import]
@@ -9,6 +10,8 @@ import torch.nn as nn
 from gymnasium import spaces
 # pyrefly: ignore [missing-import]
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
+
+from config import ACTIVE_SENSOR
 from world import GridEnv
 # pyrefly: ignore [missing-import]
 from stable_baselines3 import PPO
@@ -196,21 +199,34 @@ class PeriodicSaveCallback(BaseCallback):
             print(f"\n[Checkpoint] Saved model to {self.save_path}.zip at step {self.num_timesteps}")
         return True
 
+def is_tensorboard_available():
+    try:
+        import tensorboard  # noqa: F401
+        from torch.utils.tensorboard import SummaryWriter  # noqa: F401
+        return True
+    except Exception:
+        return False
+
 def train():
     # We initialize the environment with active_sensors=1 (ConeSensor) as active.
     # If we want to support both or any sensor configured in the env, we can.
     # Let's match the active sensor index in agent_run.py (currently set to 1 by the user)
-    active_sensor_idx = 0
-    print(f"Initializing GridEnv with active_sensors={active_sensor_idx} for training...")
-    env = GridEnv(active_sensors=active_sensor_idx)
-    model_base_name = f"ppo_cnn_model_sensor_{active_sensor_idx}"
+    active_sensor = ACTIVE_SENSOR
+    print(f"Initializing GridEnv with active_sensors={active_sensor} for training...")
+    env = GridEnv(active_sensors=active_sensor)
+    model_base_name = f"ppo_cnn_model_sensor_{active_sensor}"
     model_path = f"{model_base_name}.zip"
-    log_dir = "logs"
+    log_dir = os.path.join("logs", f"sensor_{active_sensor}")
     os.makedirs(log_dir, exist_ok=True)
     monitor_file_path = os.path.join(log_dir, "monitor.csv")
-    
-    import shutil
-    
+    tb_log = log_dir if is_tensorboard_available() else None
+
+    # Migrate legacy root monitor log file if present
+    legacy_monitor_path = os.path.join("logs", "monitor.csv")
+    if os.path.exists(legacy_monitor_path) and not os.path.exists(monitor_file_path):
+        shutil.move(legacy_monitor_path, monitor_file_path)
+        print(f"Migrated legacy log file to {monitor_file_path}")
+
     continuing = os.path.exists(model_path)
     backup_path = None
     
@@ -260,7 +276,7 @@ def train():
     if os.path.exists(model_path):
         print(f"Loading existing model from {model_path} to continue training...")
         try:
-            model = PPO.load(model_path, env=env, device=device)
+            model = PPO.load(model_path, env=env, device=device, tensorboard_log=tb_log)
         except Exception as e:
             print(f"Could not load model due to architecture mismatch ({e}). Re-creating model from scratch...")
             model = None
@@ -281,7 +297,8 @@ def train():
             clip_range=0.2,
             ent_coef=0.02,          # Encourage exploration in state space
             seed=42,
-            device=device
+            device=device,
+            tensorboard_log=tb_log
         )
 
     print("Starting training of PPO agent...")
@@ -289,7 +306,7 @@ def train():
     save_callback = PeriodicSaveCallback(save_path=model_base_name, save_freq=2000)
     
     # Train for more steps, preserving log step count if loading model, passing callback
-    model.learn(total_timesteps=1000000, reset_num_timesteps=False, callback=save_callback)
+    model.learn(total_timesteps=2500000, reset_num_timesteps=False, callback=save_callback)
     
     # Save the final trained model
     model.save(model_base_name)

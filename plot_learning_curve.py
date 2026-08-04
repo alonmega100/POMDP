@@ -6,18 +6,41 @@ import matplotlib.pyplot as plt
 # pyrefly: ignore [missing-import]
 import numpy as np
 
-def plot_learning_curve(log_dir="logs", window=5000):
+try:
+    from config import ACTIVE_SENSOR
+except ImportError:
+    ACTIVE_SENSOR = 0
+
+SENSOR_NAMES = {
+    0: "Line Sensor (4 blocks)",
+    1: "Cone Sensor (depth 3)",
+    2: "Line Sensor (3 blocks)",
+    3: "Cone Sensor (depth 4)"
+}
+
+def plot_learning_curve(sensor_id=None, window=5000):
+    if sensor_id is None:
+        sensor_id = ACTIVE_SENSOR
+
+    log_dir = os.path.join("logs", f"sensor_{sensor_id}")
     monitor_file = os.path.join(log_dir, "monitor.csv")
+    
+    # Fallback check for legacy root logs directory
     if not os.path.exists(monitor_file):
-        print(f"No monitor log file found at {monitor_file}.")
-        print("Make sure you have started training to generate logs.")
+        legacy_file = os.path.join("logs", "monitor.csv")
+        if os.path.exists(legacy_file):
+            monitor_file = legacy_file
+
+    if not os.path.exists(monitor_file):
+        print(f"No monitor log file found for sensor {sensor_id} at {monitor_file}.")
+        print("Make sure you have started training for this sensor to generate logs.")
         return
-        
+
     # Read the monitor log file (skip the first line header which is metadata)
     df = pd.read_csv(monitor_file, skiprows=1)
     
     if len(df) == 0:
-        print("Monitor log file is empty. Keep training to log episode metrics!")
+        print(f"Monitor log file for sensor {sensor_id} is empty. Keep training to log episode metrics!")
         return
 
     # Cumulative timesteps
@@ -25,25 +48,88 @@ def plot_learning_curve(log_dir="logs", window=5000):
     
     plt.figure(figsize=(10, 5))
     
+    sensor_name = SENSOR_NAMES.get(sensor_id, f"Sensor {sensor_id}")
+    
     # Plot raw episode rewards with lower alpha
     plt.plot(df['timesteps'], df['r'], alpha=0.3, color='dodgerblue', label='Episode Reward')
     
     # Plot rolling average reward to smooth out the learning curve
-    if len(df) >= window:
-        df['rolling_r'] = df['r'].rolling(window=window).mean()
-        plt.plot(df['timesteps'], df['rolling_r'], color='blue', linewidth=2, label=f'Rolling Mean (last {window} eps)')
+    smooth_window = min(window, max(1, len(df) // 5))
+    if len(df) >= 2:
+        df['rolling_r'] = df['r'].rolling(window=smooth_window, min_periods=1).mean()
+        plt.plot(df['timesteps'], df['rolling_r'], color='blue', linewidth=2, label=f'Rolling Mean ({smooth_window} eps)')
         
-    plt.title("PPO Agent Learning Curve (Reward vs. Timesteps)")
+    plt.title(f"PPO Agent Learning Curve - {sensor_name}")
     plt.xlabel("Total Timesteps")
     plt.ylabel("Episode Reward")
     plt.grid(True, linestyle="--", alpha=0.6)
     plt.legend()
     
     # Save the learning curve plot
-    output_path = "learning_curve.png"
+    output_path = f"learning_curve_sensor_{sensor_id}.png"
     plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.savefig("learning_curve.png", dpi=150, bbox_inches='tight')
     plt.show()
-    print(f"Learning curve plot saved successfully to {output_path}!")
+    plt.close()
+    print(f"Learning curve plot saved successfully to {output_path} and learning_curve.png!")
+
+def plot_all_sensors_comparison(window=50):
+    logs_base = "logs"
+    if not os.path.exists(logs_base):
+        return
+
+    sensor_dirs = [
+        d for d in os.listdir(logs_base) 
+        if os.path.isdir(os.path.join(logs_base, d)) and d.startswith("sensor_")
+    ]
+    
+    if not sensor_dirs:
+        return
+
+    plt.figure(figsize=(12, 6))
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+
+    plotted_any = False
+    for idx, sdir in enumerate(sorted(sensor_dirs)):
+        monitor_file = os.path.join(logs_base, sdir, "monitor.csv")
+        if not os.path.exists(monitor_file):
+            continue
+
+        try:
+            df = pd.read_csv(monitor_file, skiprows=1)
+            if len(df) == 0:
+                continue
+
+            try:
+                sensor_num = int(sdir.split("_")[1])
+                label_name = SENSOR_NAMES.get(sensor_num, f"Sensor {sensor_num}")
+            except ValueError:
+                label_name = sdir
+
+            df['timesteps'] = df['l'].cumsum()
+            smooth_window = min(window, max(1, len(df) // 5))
+            df['rolling_r'] = df['r'].rolling(window=smooth_window, min_periods=1).mean()
+            
+            color = colors[idx % len(colors)]
+            plt.plot(df['timesteps'], df['rolling_r'], label=f"{label_name} (Rolling Mean)", linewidth=2, color=color)
+            plt.plot(df['timesteps'], df['r'], alpha=0.15, color=color)
+            plotted_any = True
+        except Exception as e:
+            print(f"Error reading {monitor_file}: {e}")
+
+    if plotted_any:
+        plt.title("Multi-Sensor PPO Learning Curve Comparison")
+        plt.xlabel("Total Timesteps")
+        plt.ylabel("Episode Reward")
+        plt.grid(True, linestyle="--", alpha=0.6)
+        plt.legend()
+        output_path = "learning_curve_comparison.png"
+        plt.savefig(output_path, dpi=150, bbox_inches='tight')
+        plt.show()
+        plt.close()
+        print(f"Multi-sensor comparison plot saved successfully to {output_path}!")
 
 if __name__ == "__main__":
     plot_learning_curve()
+    plot_all_sensors_comparison()
+

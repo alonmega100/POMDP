@@ -2,10 +2,12 @@
 import gymnasium as gym
 # pyrefly: ignore [missing-import]
 import matplotlib.pyplot as plt
+
+from config import ACTIVE_SENSOR
 from world import GridEnv  # Imports your custom class
 
 # 1. Initialize the environment
-env = GridEnv(active_sensors=1)
+env = GridEnv(active_sensors=ACTIVE_SENSOR)
 
 # 2. Reset the environment to start
 observation, info = env.reset()

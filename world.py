@@ -39,7 +39,10 @@ class GridEnv(gym.Env):
         if sensors is None:
             all_sensors = [
                 LineSensor(name="sensor_line", num_blocks=4),
-                ConeSensor(name="sensor_cone", depth=3)
+                ConeSensor(name="sensor_cone", depth=3),
+                LineSensor(name="sensor_line", num_blocks=3),
+                ConeSensor(name="sensor_cone", depth=4)
+
             ]
         else:
             all_sensors = sensors
