@@ -306,7 +306,7 @@ def train():
     save_callback = PeriodicSaveCallback(save_path=model_base_name, save_freq=2000)
     
     # Train for more steps, preserving log step count if loading model, passing callback
-    model.learn(total_timesteps=2500000, reset_num_timesteps=False, callback=save_callback)
+    model.learn(total_timesteps=1250000, reset_num_timesteps=False, callback=save_callback)
     
     # Save the final trained model
     model.save(model_base_name)

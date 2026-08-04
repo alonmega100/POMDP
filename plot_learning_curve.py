@@ -7,18 +7,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 try:
-    from config import ACTIVE_SENSOR
+    from config import ACTIVE_SENSOR, WINDOW_SIZE
 except ImportError:
     ACTIVE_SENSOR = 0
 
 SENSOR_NAMES = {
-    0: "Line Sensor (4 blocks)",
-    1: "Cone Sensor (depth 3)",
-    2: "Line Sensor (3 blocks)",
+    0: "Line Sensor (3 blocks)",
+    1: "Line Sensor (4 blocks)",
+    2: "Cone Sensor (depth 3)",
     3: "Cone Sensor (depth 4)"
 }
 
-def plot_learning_curve(sensor_id=None, window=5000):
+def plot_learning_curve(sensor_id=None, window=WINDOW_SIZE):
     if sensor_id is None:
         sensor_id = ACTIVE_SENSOR
 
@@ -73,7 +73,7 @@ def plot_learning_curve(sensor_id=None, window=5000):
     plt.close()
     print(f"Learning curve plot saved successfully to {output_path} and learning_curve.png!")
 
-def plot_all_sensors_comparison(window=50):
+def plot_all_sensors_comparison(window=WINDOW_SIZE):
     logs_base = "logs"
     if not os.path.exists(logs_base):
         return

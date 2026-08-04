@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # pyrefly: ignore [missing-import]
 import numpy as np
 
-from config import ACTIVE_SENSOR
+from config import ACTIVE_SENSOR, NUM_EPISODES_FOR_AGENT_RUN
 from world import GridEnv
 
 def print_sensor_obs(obs):
@@ -65,7 +65,7 @@ def main():
         model = None
 
     # Run 5 episodes sequentially without reloading the model
-    num_episodes = 20
+    num_episodes = NUM_EPISODES_FOR_AGENT_RUN
     for ep in range(1, num_episodes + 1):
         print(f"\n==========================================")
         print(f"Starting Episode {ep} / {num_episodes}")
