@@ -11,7 +11,7 @@ from gymnasium import spaces
 # pyrefly: ignore [missing-import]
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
-from config import ACTIVE_SENSOR
+from config import MODELS_TO_TRAIN, SAVED_MODELS_DIR, TOTAL_TRAINING_STEPS
 from world import GridEnv
 # pyrefly: ignore [missing-import]
 from stable_baselines3 import PPO
@@ -207,11 +207,8 @@ def is_tensorboard_available():
     except Exception:
         return False
 
-def train():
-    # We initialize the environment with active_sensors=1 (ConeSensor) as active.
-    # If we want to support both or any sensor configured in the env, we can.
-    # Let's match the active sensor index in agent_run.py (currently set to 1 by the user)
-    active_sensor = ACTIVE_SENSOR
+def train(active_sensor):
+    # We initialize the environment with the current sensor
     print(f"Initializing GridEnv with active_sensors={active_sensor} for training...")
     env = GridEnv(active_sensors=active_sensor)
     
@@ -313,11 +310,15 @@ def train():
     save_callback = PeriodicSaveCallback(save_path=save_target, save_freq=2000)
     
     # Train for more steps, preserving log step count if loading model, passing callback
-    model.learn(total_timesteps=1250000, reset_num_timesteps=False, callback=save_callback)
+    model.learn(total_timesteps=TOTAL_TRAINING_STEPS, reset_num_timesteps=False, callback=save_callback)
     
     # Save the final trained model
     model.save(save_target)
     print(f"Training finished! Model saved to {save_target}.zip")
 
 if __name__ == "__main__":
-    train()
+    for sensor in MODELS_TO_TRAIN:
+        print(f"\n=======================================================")
+        print(f"Starting training session for sensor: {sensor}")
+        print(f"=======================================================")
+        train(sensor)
