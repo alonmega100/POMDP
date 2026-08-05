@@ -51,13 +51,13 @@ AVAILABLE_SENSORS = {
     },
 }
 
-ACTIVE_SENSOR = "front_row_3_1"
+ACTIVE_SENSOR = "diagonal_4"
 MODELS_TO_TRAIN = ["front_row_3_1", "front_row_5_1", "front_row_3_2", "front_row_5_2", "diagonal_3", "diagonal_4"]  # List of sensors to train sequentially in ppo_train.py
 # sensor names for me = ["line_3", "line_4", "cone_3", "cone_4", "front_row_3_1", "front_row_5_1", "front_row_3_2", "front_row_5_2", "diagonal_3", "diagonal_4"]
 
 SAVED_MODELS_DIR = "saved_models"
 NUMBER_OF_ENVIRONMENTS = 1000
-NUM_EPISODES_FOR_AGENT_RUN = 1
+NUM_EPISODES_FOR_AGENT_RUN = 5
 WINDOW_SIZE = 5000
 TOTAL_TRAINING_STEPS = 1250000
 # TOTAL_TRAINING_STEPS = 10

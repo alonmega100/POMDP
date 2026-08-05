@@ -237,7 +237,7 @@ def analyze_results():
     axes[1].set_xticklabels([c.replace('sensor_', '').replace('_reward', '') for c in sensor_cols])
     axes[1].tick_params(axis='x', rotation=45)
     axes[1].set_ylabel('Accumulated Reward')
-    axes[1].set_ylim(4,11)
+    axes[1].set_ylim(-6,11)
     axes[1].grid(True)
     axes[1].set_title(f'Reward Distribution across {NUMBER_OF_ENVIRONMENTS} Environments')
 
