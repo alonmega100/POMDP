@@ -3,17 +3,20 @@ import numpy as np
 import os
 import csv
 
-from config import SENSORS_TO_COMPARE, NUMBER_OF_ENVIRONMENTS, SAVED_MODELS_DIR
+from config import AVAILABLE_SENSORS, NUMBER_OF_ENVIRONMENTS, SAVED_MODELS_DIR
 from world import GridEnv
 
 
-def evaluate_sensors(num_environments, sensors, device="cpu"):
+def evaluate_sensors(num_environments, sensors=None, device="cpu"):
     """
     Generates num_environments environments and runs all sensors in each of them.
     Returns a matrix where each row is an environment, each column is a sensor,
     and the value is the total reward the sensor achieved.
     Also saves a CSV with detailed metrics and snapshots of the environments.
     """
+    if sensors is None:
+        sensors = list(AVAILABLE_SENSORS.keys())
+        
     matrix = np.zeros((num_environments, len(sensors)))
     
     try:
@@ -120,13 +123,22 @@ def analyze_results():
     import matplotlib.pyplot as plt
     import seaborn as sns
     from itertools import combinations
+    import os
+    import glob
 
     # 1. Load your dataset
-    df = pd.read_csv('sensor_comparison_results_100x4.csv')
+    csv_files = glob.glob('sensor_comparison_results_*.csv')
+    if not csv_files:
+        print("No results CSV found to analyze.")
+        return
+    latest_csv = max(csv_files, key=os.path.getctime)
+    print(f"Analyzing results from: {latest_csv}")
+    
+    df = pd.read_csv(latest_csv)
 
-    # Define sensor reward columns
-    sensor_cols = ['sensor_0_reward', 'sensor_1_reward', 'sensor_2_reward', 'sensor_3_reward']
-    sensor_names = [c.replace('_reward', '') for c in sensor_cols]
+    # Define sensor reward columns dynamically
+    sensor_cols = [c for c in df.columns if c.startswith('sensor_') and c.endswith('_reward')]
+    sensor_names = [c.replace('sensor_', '').replace('_reward', '') for c in sensor_cols]
 
     # ==========================================
     # STEP 1: Calculate Summary Statistics
@@ -141,7 +153,7 @@ def analyze_results():
         ci95 = sem_val * stats.t.ppf((1 + 0.95) / 2., len(data) - 1)
 
         summary_list.append({
-            'Sensor': col.replace('_reward', ''),
+            'Sensor': col.replace('sensor_', '').replace('_reward', ''),
             'Mean Reward': mean_val,
             'Median Reward': data.median(),
             'Std Dev': std_val,
@@ -185,7 +197,7 @@ def analyze_results():
         # Wilcoxon signed-rank test for paired environments
         stat, p = stats.wilcoxon(df[s1], df[s2])
         raw_p_values.append(p)
-        pair_labels.append(f"{s1.replace('_reward', '')} vs {s2.replace('_reward', '')}")
+        pair_labels.append(f"{s1.replace('sensor_', '').replace('_reward', '')} vs {s2.replace('sensor_', '').replace('_reward', '')}")
 
     # Apply Holm-Bonferroni correction to prevent false positives across 6 tests
     reject, p_adjusted, _, _ = multipletests(raw_p_values, alpha=0.05, method='holm')
@@ -215,19 +227,25 @@ def analyze_results():
     axes[0].bar(labels, means, yerr=errors, capsize=6, color='skyblue', edgecolor='black')
     axes[0].set_ylabel('Mean Accumulated Reward')
     axes[0].set_title('Mean Reward per Sensor (with 95% Confidence Intervals)')
-    axes[0].set_ylim(bottom=df[sensor_cols].min().min() * 0.9)
+    # axes[0].set_ylim(bottom=df[sensor_cols].min().min() * 0.9)
+    axes[0].tick_params(axis='x', rotation=45)
+    axes[0].grid(True)
+    axes[0].set_ylim(0,11)
 
     # Plot B: Boxplot showing performance distribution & consistency
     sns.boxplot(data=df[sensor_cols], ax=axes[1], palette='Set2')
-    axes[1].set_xticklabels([c.replace('_reward', '') for c in sensor_cols])
+    axes[1].set_xticklabels([c.replace('sensor_', '').replace('_reward', '') for c in sensor_cols])
+    axes[1].tick_params(axis='x', rotation=45)
     axes[1].set_ylabel('Accumulated Reward')
-    axes[1].set_title('Reward Distribution across 100 Environments')
+    axes[1].set_ylim(4,11)
+    axes[1].grid(True)
+    axes[1].set_title(f'Reward Distribution across {NUMBER_OF_ENVIRONMENTS} Environments')
 
     plt.tight_layout()
     plt.show()
 def main():
     # print(f"Generating {NUMBER_OF_ENVIRONMENTS} environments and running sensors...")
-    # results_matrix = evaluate_sensors(NUMBER_OF_ENVIRONMENTS, SENSORS_TO_COMPARE, device="cpu")
+    # results_matrix = evaluate_sensors(NUMBER_OF_ENVIRONMENTS, device="cpu")
     # print("\nResults Matrix (Rows = Environments, Columns = Sensors):")
     # print(results_matrix)
     # return results_matrix
