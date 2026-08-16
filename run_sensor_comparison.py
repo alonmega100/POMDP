@@ -65,8 +65,8 @@ def evaluate_sensors(num_environments, sensors=None, device="cpu"):
                 env_dict["target_pos"] = (int(env._target_location[0]), int(env._target_location[1]))
                 
                 # Render and save image of t=0
-                env.render()
-                plt.savefig(os.path.join(snapshots_dir, f"env_{env_idx}.jpg"), format='jpg', dpi=150)
+                # env.render()
+                # plt.savefig(os.path.join(snapshots_dir, f"env_{env_idx}.jpg"), format='jpg', dpi=150)
             
             model = loaded_models.get(sensor, None)
                 

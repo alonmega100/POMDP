@@ -1,3 +1,6 @@
 __pycache__/
 .idea/
 ppo_lstm_model.zip
+# TensorBoard logs
+**/PPO_*/
+*.tfevents.*

@@ -5,8 +5,10 @@ import matplotlib.pyplot as plt
 # pyrefly: ignore [missing-import]
 import numpy as np
 
-from config import ACTIVE_SENSOR, NUM_EPISODES_FOR_AGENT_RUN, SAVED_MODELS_DIR
+from config import ACTIVE_SENSOR, NUM_EPISODES_FOR_AGENT_RUN, SAVED_MODELS_DIR, PLAY_ON_HARD_ENVS_ONLY
 from world import GridEnv
+import json
+import os
 
 def print_sensor_obs(obs):
     print("\n--- Current Observations ---")
@@ -43,10 +45,21 @@ def print_sensor_obs(obs):
 # 1. Initialize the environment. You can specify a single sensor index (e.g., active_sensors=0 for LineSensor,
 # active_sensors=1 for ConeSensor) or list them (e.g., active_sensors=[0, 1] or None for all sensors).
 active_sensor = ACTIVE_SENSOR
-env = GridEnv(active_sensors=active_sensor)
+
+hard_envs_list = None
+if PLAY_ON_HARD_ENVS_ONLY:
+    if not os.path.exists("hard_envs.json"):
+        raise FileNotFoundError("PLAY_ON_HARD_ENVS_ONLY is True but 'hard_envs.json' not found. Run extract_hard_envs.py first.")
+    with open("hard_envs.json", "r") as f:
+        all_hard_envs = json.load(f)
+    hard_envs_list = all_hard_envs.get(active_sensor, [])
+    print(f"Loaded {len(hard_envs_list)} specific hard environments for sensor '{active_sensor}' for agent play.")
+    if len(hard_envs_list) == 0:
+        print(f"Warning: No hard environments found for '{active_sensor}'. Will fall back to random envs.")
+
+env = GridEnv(active_sensors=active_sensor, hard_envs=hard_envs_list)
 
 # Load trained PPO model if available
-import os
 # pyrefly: ignore [missing-import]
 from stable_baselines3 import PPO
 

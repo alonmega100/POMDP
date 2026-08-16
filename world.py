@@ -36,9 +36,10 @@ def create_sensor(sensor_key: str):
 
 
 class GridEnv(gym.Env):
-    def __init__(self, sensors=None, active_sensors=None):
+    def __init__(self, sensors=None, active_sensors=None, hard_envs=None):
         super().__init__()
         self.size = 10
+        self.hard_envs = hard_envs
 
         # Define 8 discrete actions
         self.action_space = spaces.Discrete(8)
@@ -101,15 +102,21 @@ class GridEnv(gym.Env):
         super().reset(seed=seed)
         self._elapsed_steps = 0
 
-        # Randomly place the agent
-        self._agent_location = self.np_random.integers(0, self.size, size=2, dtype=int)
-
-        # Randomly place target, ensuring it's different from agent position
-        self._target_location = self._agent_location
-        while np.array_equal(self._target_location, self._agent_location):
-            self._target_location = self.np_random.integers(
-                0, self.size, size=2, dtype=int
-            )
+        if getattr(self, 'hard_envs', None) is not None and len(self.hard_envs) > 0:
+            idx = self.np_random.integers(0, len(self.hard_envs))
+            env_cfg = self.hard_envs[idx]
+            self._agent_location = np.array(env_cfg['agent_start_pos'], dtype=int)
+            self._target_location = np.array(env_cfg['target_pos'], dtype=int)
+        else:
+            # Randomly place the agent
+            self._agent_location = self.np_random.integers(0, self.size, size=2, dtype=int)
+    
+            # Randomly place target, ensuring it's different from agent position
+            self._target_location = self._agent_location
+            while np.array_equal(self._target_location, self._agent_location):
+                self._target_location = self.np_random.integers(
+                    0, self.size, size=2, dtype=int
+                )
 
         # Reset visited grid and mark current agent position as visited
         self._visited_grid = np.zeros((self.size, self.size), dtype=np.float32)

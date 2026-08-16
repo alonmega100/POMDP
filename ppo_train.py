@@ -11,7 +11,8 @@ from gymnasium import spaces
 # pyrefly: ignore [missing-import]
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
-from config import MODELS_TO_TRAIN, SAVED_MODELS_DIR, TOTAL_TRAINING_STEPS
+import json
+from config import MODELS_TO_TRAIN, SAVED_MODELS_DIR, TOTAL_TRAINING_STEPS, TRAIN_ON_HARD_ENVS_ONLY
 from world import GridEnv
 # pyrefly: ignore [missing-import]
 from stable_baselines3 import PPO
@@ -210,7 +211,20 @@ def is_tensorboard_available():
 def train(active_sensor):
     # We initialize the environment with the current sensor
     print(f"Initializing GridEnv with active_sensors={active_sensor} for training...")
-    env = GridEnv(active_sensors=active_sensor)
+    hard_envs_list = None
+    if TRAIN_ON_HARD_ENVS_ONLY:
+        if not os.path.exists("hard_envs.json"):
+            raise FileNotFoundError("TRAIN_ON_HARD_ENVS_ONLY is True but 'hard_envs.json' not found. Run extract_hard_envs.py first.")
+        with open("hard_envs.json", "r") as f:
+            all_hard_envs = json.load(f)
+        
+        hard_envs_list = all_hard_envs.get(active_sensor, [])
+        print(f"Loaded {len(hard_envs_list)} specific hard environments for sensor '{active_sensor}'.")
+        
+        if len(hard_envs_list) == 0:
+            print(f"Warning: No hard environments found for '{active_sensor}'. Will fall back to random envs.")
+        
+    env = GridEnv(active_sensors=active_sensor, hard_envs=hard_envs_list)
     
     os.makedirs(SAVED_MODELS_DIR, exist_ok=True)
     model_base_name = f"ppo_cnn_model_sensor_{active_sensor}"
