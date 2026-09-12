@@ -66,3 +66,14 @@ TOTAL_TRAINING_STEPS = 100000
 
 TRAIN_ON_HARD_ENVS_ONLY = True
 PLAY_ON_HARD_ENVS_ONLY = True
+
+# Task / Reward Mode:
+# "target" -> Reward for reaching the target prize (original task)
+# "exploration" -> Reward for discovering/revealing map cells
+REWARD_MODE = "exploration"
+
+# Reward parameters for "exploration" mode
+REWARD_PER_NEW_CELL = 1.0          # Reward for each newly revealed grid square
+EXPLORATION_STEP_PENALTY = -0.02   # Small step penalty to encourage efficient mapping
+WALL_PENALTY = -1.0                # Penalty for attempting to move into walls
+FULL_MAP_BONUS = 10.0              # Bonus for reaching 100% map coverage

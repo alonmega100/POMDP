@@ -3,7 +3,7 @@ import numpy as np
 import os
 import csv
 
-from config import AVAILABLE_SENSORS, NUMBER_OF_ENVIRONMENTS, SAVED_MODELS_DIR
+from config import AVAILABLE_SENSORS, NUMBER_OF_ENVIRONMENTS, SAVED_MODELS_DIR, REWARD_MODE
 from world import GridEnv
 
 
@@ -30,8 +30,13 @@ def evaluate_sensors(num_environments, sensors=None, device="cpu"):
     loaded_models = {}
     if has_sb3:
         for sensor in sensors:
-            filename = f"ppo_cnn_model_sensor_{sensor}.zip"
+            mode_tag = f"_{REWARD_MODE}"
+            filename = f"ppo_cnn_model_sensor_{sensor}{mode_tag}.zip"
             model_path = os.path.join(SAVED_MODELS_DIR, filename)
+            if not os.path.exists(model_path) and REWARD_MODE == "target":
+                legacy_path = os.path.join(SAVED_MODELS_DIR, f"ppo_cnn_model_sensor_{sensor}.zip")
+                if os.path.exists(legacy_path):
+                    model_path = legacy_path
             if not os.path.exists(model_path) and os.path.exists(filename):
                 model_path = filename
                 
@@ -63,10 +68,6 @@ def evaluate_sensors(num_environments, sensors=None, device="cpu"):
             if s_idx == 0:
                 env_dict["agent_start_pos"] = (int(env._agent_location[0]), int(env._agent_location[1]))
                 env_dict["target_pos"] = (int(env._target_location[0]), int(env._target_location[1]))
-                
-                # Render and save image of t=0
-                # env.render()
-                # plt.savefig(os.path.join(snapshots_dir, f"env_{env_idx}.jpg"), format='jpg', dpi=150)
             
             model = loaded_models.get(sensor, None)
                 
@@ -96,12 +97,13 @@ def evaluate_sensors(num_environments, sensors=None, device="cpu"):
             
             # Record detailed metrics for this sensor
             env_dict[f"sensor_{sensor}_reward"] = total_reward
-
+            env_dict[f"sensor_{sensor}_coverage"] = info.get("coverage_ratio", 0.0)
+            env_dict[f"sensor_{sensor}_steps"] = steps
             
         results_data.append(env_dict)
             
     # Save all results to a CSV file (Wide Format for Excel)
-    csv_filename = f"sensor_comparison_results_{num_environments}x{len(sensors)}.csv"
+    csv_filename = f"sensor_comparison_results_{REWARD_MODE}_{num_environments}x{len(sensors)}.csv"
     if results_data:
         keys = results_data[0].keys()
         with open(csv_filename, 'w', newline='') as output_file:
@@ -110,7 +112,6 @@ def evaluate_sensors(num_environments, sensors=None, device="cpu"):
             dict_writer.writerows(results_data)
             
     print(f"Results saved to {csv_filename}")
-    print(f"Environment snapshots saved in '{snapshots_dir}/'")
     
     return matrix
 

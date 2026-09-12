@@ -7,11 +7,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 try:
-    from config import ACTIVE_SENSOR, WINDOW_SIZE, AVAILABLE_SENSORS
+    from config import ACTIVE_SENSOR, WINDOW_SIZE, AVAILABLE_SENSORS, REWARD_MODE
 except ImportError:
     ACTIVE_SENSOR = "cone_4"
     WINDOW_SIZE = 5000
     AVAILABLE_SENSORS = {}
+    REWARD_MODE = "target"
 
 SENSOR_NAMES = {k: v.get("display_name", k) for k, v in AVAILABLE_SENSORS.items()}
 
@@ -19,8 +20,15 @@ def plot_learning_curve(sensor_id=None, window=WINDOW_SIZE):
     if sensor_id is None:
         sensor_id = ACTIVE_SENSOR
 
-    log_dir = os.path.join("logs", f"sensor_{sensor_id}")
+    mode_tag = f"_{REWARD_MODE}"
+    log_dir = os.path.join("logs", f"sensor_{sensor_id}{mode_tag}")
     monitor_file = os.path.join(log_dir, "monitor.csv")
+    
+    # Fallback to sensor without mode tag if not found
+    if not os.path.exists(monitor_file):
+        alt_log_dir = os.path.join("logs", f"sensor_{sensor_id}")
+        if os.path.exists(os.path.join(alt_log_dir, "monitor.csv")):
+            monitor_file = os.path.join(alt_log_dir, "monitor.csv")
     
     # Fallback check for legacy root logs directory
     if not os.path.exists(monitor_file):

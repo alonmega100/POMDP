@@ -12,7 +12,7 @@ from gymnasium import spaces
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 
 import json
-from config import MODELS_TO_TRAIN, SAVED_MODELS_DIR, TOTAL_TRAINING_STEPS, TRAIN_ON_HARD_ENVS_ONLY
+from config import MODELS_TO_TRAIN, SAVED_MODELS_DIR, TOTAL_TRAINING_STEPS, TRAIN_ON_HARD_ENVS_ONLY, REWARD_MODE
 from world import GridEnv
 # pyrefly: ignore [missing-import]
 from stable_baselines3 import PPO
@@ -227,13 +227,18 @@ def train(active_sensor):
     env = GridEnv(active_sensors=active_sensor, hard_envs=hard_envs_list)
     
     os.makedirs(SAVED_MODELS_DIR, exist_ok=True)
-    model_base_name = f"ppo_cnn_model_sensor_{active_sensor}"
+    mode_tag = f"_{REWARD_MODE}"
+    model_base_name = f"ppo_cnn_model_sensor_{active_sensor}{mode_tag}"
     model_path = os.path.join(SAVED_MODELS_DIR, f"{model_base_name}.zip")
+    if not os.path.exists(model_path) and REWARD_MODE == "target":
+        legacy_path = os.path.join(SAVED_MODELS_DIR, f"ppo_cnn_model_sensor_{active_sensor}.zip")
+        if os.path.exists(legacy_path):
+            model_path = legacy_path
     root_model_path = f"{model_base_name}.zip"
     if not os.path.exists(model_path) and os.path.exists(root_model_path):
         model_path = root_model_path
         
-    log_dir = os.path.join("logs", f"sensor_{active_sensor}")
+    log_dir = os.path.join("logs", f"sensor_{active_sensor}{mode_tag}")
     os.makedirs(log_dir, exist_ok=True)
     monitor_file_path = os.path.join(log_dir, "monitor.csv")
     tb_log = log_dir if is_tensorboard_available() else None

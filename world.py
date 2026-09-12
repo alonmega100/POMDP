@@ -12,7 +12,14 @@ from matplotlib.patches import Patch
 # pyrefly: ignore [missing-import]
 from matplotlib.lines import Line2D
 from sensors import LineSensor, ConeSensor, FrontRowSensor, DiagonalSensor
-from config import AVAILABLE_SENSORS
+from config import (
+    AVAILABLE_SENSORS,
+    REWARD_MODE,
+    REWARD_PER_NEW_CELL,
+    EXPLORATION_STEP_PENALTY,
+    WALL_PENALTY,
+    FULL_MAP_BONUS,
+)
 
 
 def create_sensor(sensor_key: str):
@@ -36,10 +43,11 @@ def create_sensor(sensor_key: str):
 
 
 class GridEnv(gym.Env):
-    def __init__(self, sensors=None, active_sensors=None, hard_envs=None):
+    def __init__(self, sensors=None, active_sensors=None, hard_envs=None, reward_mode=None):
         super().__init__()
         self.size = 10
         self.hard_envs = hard_envs
+        self.reward_mode = reward_mode if reward_mode is not None else REWARD_MODE
 
         # Define 8 discrete actions
         self.action_space = spaces.Discrete(8)
@@ -134,10 +142,13 @@ class GridEnv(gym.Env):
         return observation, info
 
     def _get_info(self):
+        visited_count = int(np.sum(self._visited_grid))
         return {
             "distance": np.linalg.norm(
                 self._agent_location - self._target_location, ord=1
-            )
+            ),
+            "cells_discovered": visited_count,
+            "coverage_ratio": visited_count / float(self.size * self.size),
         }
 
     def _get_obs(self):
@@ -194,6 +205,9 @@ class GridEnv(gym.Env):
     def step(self, action):
         self._elapsed_steps += 1
         
+        # Track cells visited before taking action
+        prev_visited_count = np.sum(self._visited_grid)
+
         hit_wall = False
         # If action is movement (0, 1, 2, 3)
         if action in self._action_to_direction:
@@ -212,15 +226,27 @@ class GridEnv(gym.Env):
         self._visited_grid[self._agent_location[0], self._agent_location[1]] = 1.0
         self._update_visited_with_sensors()
 
-        terminated = np.array_equal(self._agent_location, self._target_location)
+        current_visited_count = np.sum(self._visited_grid)
+        new_cells_revealed = current_visited_count - prev_visited_count
+
         truncated = self._elapsed_steps >= 60
 
-        if terminated:
-            reward = 10.0
-        elif hit_wall:
-            reward = -1.0
-        else:
-            reward = -0.1
+        if self.reward_mode == "exploration":
+            all_discovered = (current_visited_count == self.size * self.size)
+            terminated = bool(all_discovered)
+            reward = float(new_cells_revealed * REWARD_PER_NEW_CELL + EXPLORATION_STEP_PENALTY)
+            if hit_wall:
+                reward += WALL_PENALTY
+            if all_discovered:
+                reward += FULL_MAP_BONUS
+        else:  # "target" mode
+            terminated = np.array_equal(self._agent_location, self._target_location)
+            if terminated:
+                reward = 10.0
+            elif hit_wall:
+                reward = -1.0
+            else:
+                reward = -0.1
 
         observation = self._get_obs()
         info = self._get_info()

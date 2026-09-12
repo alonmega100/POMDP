@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # pyrefly: ignore [missing-import]
 import numpy as np
 
-from config import ACTIVE_SENSOR, NUM_EPISODES_FOR_AGENT_RUN, SAVED_MODELS_DIR, PLAY_ON_HARD_ENVS_ONLY
+from config import ACTIVE_SENSOR, NUM_EPISODES_FOR_AGENT_RUN, SAVED_MODELS_DIR, PLAY_ON_HARD_ENVS_ONLY, REWARD_MODE
 from world import GridEnv
 import json
 import os
@@ -64,8 +64,13 @@ env = GridEnv(active_sensors=active_sensor, hard_envs=hard_envs_list)
 from stable_baselines3 import PPO
 
 def main():
-    filename = f"ppo_cnn_model_sensor_{active_sensor}.zip"
+    mode_tag = f"_{REWARD_MODE}"
+    filename = f"ppo_cnn_model_sensor_{active_sensor}{mode_tag}.zip"
     model_path = os.path.join(SAVED_MODELS_DIR, filename)
+    if not os.path.exists(model_path) and REWARD_MODE == "target":
+        legacy_path = os.path.join(SAVED_MODELS_DIR, f"ppo_cnn_model_sensor_{active_sensor}.zip")
+        if os.path.exists(legacy_path):
+            model_path = legacy_path
     if not os.path.exists(model_path) and os.path.exists(filename):
         model_path = filename  # Fallback to root directory
 
@@ -128,11 +133,15 @@ def main():
             plt.pause(0.001)  # Pause to make visualization visible
 
             if terminated:
-                print("Success! Target reached!")
+                if REWARD_MODE == "exploration":
+                    print("Success! Entire 10x10 map (100%) revealed!")
+                else:
+                    print("Success! Target reached!")
                 plt.pause(1.5)
                 break
             if truncated:
-                print("Failed! Step limit reached (60 steps).")
+                coverage_pct = info.get('coverage_ratio', 0.0) * 100
+                print(f"Step limit reached (60 steps). Total Coverage: {info.get('cells_discovered', '?')}/100 ({coverage_pct:.1f}%)")
                 plt.pause(1.5)
                 break
 
