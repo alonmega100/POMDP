@@ -334,6 +334,12 @@ def train(active_sensor):
     # Save the final trained model
     model.save(save_target)
     print(f"Training finished! Model saved to {save_target}.zip")
+    
+    # Clean up environment and memory before next sensor
+    env.close()
+    del model
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
 if __name__ == "__main__":
     for sensor in MODELS_TO_TRAIN:

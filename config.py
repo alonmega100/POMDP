@@ -53,7 +53,7 @@ AVAILABLE_SENSORS = {
 
 ACTIVE_SENSOR = "diagonal_3"
 # MODELS_TO_TRAIN = ["front_row_3_1", "front_row_5_1", "front_row_3_2", "front_row_5_2", "diagonal_3", "diagonal_4"]
-MODELS_TO_TRAIN = ["diagonal_3"]
+MODELS_TO_TRAIN = ["line_3", "line_4", "cone_3", "cone_4", "front_row_3_1", "front_row_5_1", "front_row_3_2", "front_row_5_2", "diagonal_3", "diagonal_4"]
 # sensor names for me = ["line_3", "line_4", "cone_3", "cone_4", "front_row_3_1", "front_row_5_1", "front_row_3_2", "front_row_5_2", "diagonal_3", "diagonal_4"]
 
 
@@ -76,4 +76,4 @@ REWARD_MODE = "exploration"
 REWARD_PER_NEW_CELL = 1.0          # Reward for each newly revealed grid square
 EXPLORATION_STEP_PENALTY = -0.02   # Small step penalty to encourage efficient mapping
 WALL_PENALTY = -1.0                # Penalty for attempting to move into walls
-FULL_MAP_BONUS = 10.0              # Bonus for reaching 100% map coverage
+FULL_MAP_BONUS = 10.0              # Bonus for reaching 100% map coverage
