@@ -61,11 +61,11 @@ SAVED_MODELS_DIR = "saved_models"
 NUMBER_OF_ENVIRONMENTS = 100
 NUM_EPISODES_FOR_AGENT_RUN = 5
 WINDOW_SIZE = 50000
-TOTAL_TRAINING_STEPS = 100000
-# TOTAL_TRAINING_STEPS = 10
+TOTAL_TRAINING_STEPS = 500000
 
-TRAIN_ON_HARD_ENVS_ONLY = True
-PLAY_ON_HARD_ENVS_ONLY = True
+# Hard envs filter (primarily used for "target" mode; for "exploration" we explore across all random starts)
+TRAIN_ON_HARD_ENVS_ONLY = False
+PLAY_ON_HARD_ENVS_ONLY = False
 
 # Task / Reward Mode:
 # "target" -> Reward for reaching the target prize (original task)

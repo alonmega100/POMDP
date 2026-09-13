@@ -262,7 +262,7 @@ def train(active_sensor):
             os.remove(monitor_file_path)
             print("No existing model found. Cleared old log files.")
             
-    env = Monitor(env, monitor_file_path)
+    env = Monitor(env, monitor_file_path, info_keywords=("cells_discovered", "coverage_ratio"))
     
     if continuing and backup_path is not None:
         if os.path.exists(backup_path):
@@ -325,8 +325,8 @@ def train(active_sensor):
 
     print("Starting training of PPO agent...")
     save_target = os.path.join(SAVED_MODELS_DIR, model_base_name)
-    # Instantiate the periodic save callback
-    save_callback = PeriodicSaveCallback(save_path=save_target, save_freq=2000)
+    # Instantiate the periodic save callback (every 5000 steps)
+    save_callback = PeriodicSaveCallback(save_path=save_target, save_freq=5000)
     
     # Train for more steps, preserving log step count if loading model, passing callback
     model.learn(total_timesteps=TOTAL_TRAINING_STEPS, reset_num_timesteps=False, callback=save_callback)
