@@ -51,10 +51,16 @@ AVAILABLE_SENSORS = {
     },
 }
 
-ACTIVE_SENSOR = "diagonal_3"
+ACTIVE_SENSOR = "cone_3"
 # MODELS_TO_TRAIN = ["front_row_3_1", "front_row_5_1", "front_row_3_2", "front_row_5_2", "diagonal_3", "diagonal_4"]
 MODELS_TO_TRAIN = ["line_3", "line_4", "cone_3", "cone_4", "front_row_3_1", "front_row_5_1", "front_row_3_2", "front_row_5_2", "diagonal_3", "diagonal_4"]
 # sensor names for me = ["line_3", "line_4", "cone_3", "cone_4", "front_row_3_1", "front_row_5_1", "front_row_3_2", "front_row_5_2", "diagonal_3", "diagonal_4"]
+
+# Task / Reward Mode:
+# "target" -> Reward for reaching the target prize (original task)
+# "exploration" -> Reward for discovering/revealing map cells
+REWARD_MODE = "exploration"
+
 
 
 SAVED_MODELS_DIR = "saved_models"
@@ -67,10 +73,7 @@ TOTAL_TRAINING_STEPS = 500000
 TRAIN_ON_HARD_ENVS_ONLY = False
 PLAY_ON_HARD_ENVS_ONLY = False
 
-# Task / Reward Mode:
-# "target" -> Reward for reaching the target prize (original task)
-# "exploration" -> Reward for discovering/revealing map cells
-REWARD_MODE = "exploration"
+
 
 # Reward parameters for "exploration" mode
 REWARD_PER_NEW_CELL = 1.0          # Reward for each newly revealed grid square
